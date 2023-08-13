@@ -43,13 +43,13 @@
                                                     modulo)))
                         Rx (- (* frac frac) (+ Px Qx))
                         Ry (+ (- Py) (* frac (- Px Rx)))))
-      (t (cond
-           ((= Py Qy) (setq frac (* (* 3 Px Px)
-                                    (cadr (extended-gcd (mod (* 2 Py) modulo)
-                                                        modulo)))
-                            Rx (- (* frac frac) (* 2 Px))
-                            Ry (- (* frac (- Px Rx)) Py)))
-           (t (return-from add-points 'INF)))))
+      (t (cond ((= Py Qy) (setq frac
+                                (* (* 3 Px Px)
+                                   (cadr (extended-gcd (mod (* 2 Py) modulo)
+                                                       modulo)))
+                                Rx (- (* frac frac) (* 2 Px))
+                                Ry (- (* frac (- Px Rx)) Py)))
+               (t (return-from add-points 'INF)))))
     (list (mod Rx modulo) (mod Ry modulo))))
 
 

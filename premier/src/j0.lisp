@@ -66,7 +66,7 @@
   (let ((e-mult 1.2) (p-char nil) (factors nil))
     (while t
       (setq p-char (generate-prime target-length))
-      (when (and (= 1 (mod p-char 6)) (= 3 (mod p-char 4))) ; (= 3 (mod p-char 4))
+      (when (and (= 1 (mod p-char 6)) t) ;(= 3 (mod p-char 4)))
         (format t "Пробуем разложить число ~d...~%" p-char)
         (setq factors (get-ring-factorization p-char e-mult))
         (cond ((null factors) (format t "Быстро разложить число не получилось. Сгенерируем новое.~%")
@@ -167,10 +167,10 @@
                             (not (is-power-residue b p-char 3))))
         ((= 6 divisor) (and (is-power-residue b p-char 2)
                             (is-power-residue b p-char 3)))
-        ((= 3 divisor) (and (not (is-power-residue b p-char 2))
-                            (is-power-residue b p-char 3)))
-        ((= 2 divisor) (and (is-power-residue b p-char 2)
+        ((= 3 divisor) (and (is-power-residue b p-char 2)
                             (not (is-power-residue b p-char 3))))
+        ((= 2 divisor) (and (not (is-power-residue b p-char 2))
+                            (is-power-residue b p-char 3)))
         (t nil)))
 
 
@@ -202,7 +202,10 @@
        (setq P0-and-b (generate-P0-and-b p-char))
        (when (not (check-residues (cadr P0-and-b) p-char (caddr E-m-divisor)))
          (go generate-point-and-b))
-
+       ;(format t "E(GF(p))P0 = ~d * (~{~a~^, ~}) = ~a. b = ~d.~%"
+       ;        (car E-m-divisor) (car P0-and-b)
+       ;        (ec-arith::scalar-product (car E-m-divisor) (car P0-and-b) p-char)
+       ;        (cadr P0-and-b))
        (if (eql (ec-arith::scalar-product (car E-m-divisor)
                                           (car P0-and-b)
                                           p-char)
