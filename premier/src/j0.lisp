@@ -1,3 +1,9 @@
+(defpackage #:gen-el-curve
+  (:use :cl))
+
+(in-package #:gen-el-curve)
+
+
 (defvar list-of-primes (list 131 137 139 149 151 157 163 167
                              173 179 181 191 193 197 199 211
                              223 227 229 233 239 241 251))
@@ -187,6 +193,7 @@
     (while (null E-m-divisor)
       (format t "Равенство и условия следствия не выполнены. Повторно сгенерируем характеристику поля.~%")
       (setq p-d-e (get-char-and-factors req-length)
+            p-char (car p-d-e)
             Es (get-possible-#Es p-d-e)
             E-m-divisor (check-equalities Es)))
     (setq E-m-divisor (car E-m-divisor))
@@ -194,5 +201,17 @@
      generate-point-and-b
        (setq P0-and-b (generate-P0-and-b p-char))
        (when (not (check-residues (cadr P0-and-b) p-char (caddr E-m-divisor)))
-         (go generate-point-and-b)))
-    (list P0-and-b E-m-divisor))))
+         (go generate-point-and-b))
+
+       (if (eql (ec-arith::scalar-product (car E-m-divisor)
+                                          (car P0-and-b)
+                                          p-char)
+                EC-ARITH::'INF)
+           (setq generator (ec-arith::scalar-product (caddr E-m-divisor)
+                                                     (car P0-and-b)
+                                                     p-char))
+           (go generate-point-and-b)))
+    (format t "Получены значения характеристики поля p = ~d, коэффициента уравнения ЭК -- b = ~d, порядка циклической группы -- m = ~d,
+ генератора циклической подгруппы G = (~{~a~^, ~})."
+            p-char (cadr P0-and-b) (cadr E-m-divisor) generator)
+    (list p-char (cadr P0-and-b) (cadr E-m-divisor) generator)))
