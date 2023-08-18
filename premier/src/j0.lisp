@@ -1,7 +1,7 @@
-(defpackage #:gen-el-curve
+(defpackage #:gen-ec
   (:use :cl))
 
-(in-package #:gen-el-curve)
+(in-package #:gen-ec)
 
 
 (defvar list-of-primes (list 131 137 139 149 151 157 163 167

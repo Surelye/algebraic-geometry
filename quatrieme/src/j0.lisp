@@ -174,12 +174,17 @@
          (Es (get-possible-#Es p-d-e))
          (E-m-divisor (check-equalities Es))
          (P0-and-b nil) (generator nil))
-    (while (null E-m-divisor)
-      (setq p-d-e (get-char-and-factors req-length)
-            p-char (car p-d-e)
-            Es (get-possible-#Es p-d-e)
-            E-m-divisor (check-equalities Es)))
-    (setq E-m-divisor (car E-m-divisor))
+    (tagbody
+     generate-E-m-divisor
+       (while (null E-m-divisor)
+         (setq p-d-e (get-char-and-factors req-length)
+               p-char (car p-d-e)
+               Es (get-possible-#Es p-d-e)
+               E-m-divisor (check-equalities Es)))
+       (setq E-m-divisor (car E-m-divisor))
+       (when (not (and (= (caddr E-m-divisor) 3) (= (mod (cadr E-m-divisor) 4) 3)))
+         (setq E-m-divisor nil)
+         (go generate-E-m-divisor)))
     (tagbody
      generate-point-and-b
        (setq P0-and-b (generate-P0-and-b p-char))

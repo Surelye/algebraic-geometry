@@ -76,7 +76,7 @@
 
 (defun ecdh ()
   (let* ((req-length (read-required-length))
-         (params (gen-el-curve::generate-curve req-length))
+         (params (gen-ec::generate-curve req-length))
          (p-char (car params)) (b (cadr params)) (E# (caddr params))
          (generator (cadddr params)) (num-users nil) (user-data nil)
          (current-random nil) (common-key nil))
