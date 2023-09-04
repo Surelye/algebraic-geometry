@@ -10,7 +10,7 @@
 
 
 (defun div (dividend divider)
-  (multiple-value-bind (quotient remainder)
+  (multiple-value-bind (quotient)
       (floor dividend divider) quotient))
 
 
