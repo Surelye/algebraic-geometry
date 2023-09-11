@@ -62,44 +62,105 @@
     q-prime))
 
 
-(defun get-char-and-factors (target-length)
-  (let ((e-mult 1.2) (p-char nil) (factors nil))
-    (while t
-      (setq p-char (generate-prime target-length))
-      (when (and (= 1 (mod p-char 6)) (= 3 (mod p-char 4)))
-        (setq factors (get-ring-factorization p-char e-mult))
-        (cond ((null factors) (setq e-mult (+ 0.2 e-mult)))
-              (t (return-from get-char-and-factors (cons p-char factors))))))))
-
-
-(defun get-ring-factorization (p-char e-mult)
-  (let* ((lower-bound (isqrt (div p-char 2)))
-         (lb-rem (mod lower-bound 3)) (upper-bound (1+ (isqrt p-char)))
-         (ub-multed nil))
-    (do ((d (+ 2 lower-bound (- lb-rem)) (+ 3 d)))
-        ((> d upper-bound) nil)
-      (setq ub-multed (ceil (* e-mult upper-bound)))
-      (do ((e (+ 3 ub-multed (- (mod ub-multed 3))) (- e 3)))
-          ((< e lower-bound) nil)
-        (when (= p-char (+ (* d d) (* e e) (- (* d e))))
-          (return-from get-ring-factorization (list d e)))))
-    nil))
-
-
 (defun div (dividend divider)
-  (multiple-value-bind (quotient remainder)
+  (multiple-value-bind (quotient)
       (floor dividend divider) quotient))
 
 
 (defun ceil (num)
-  (multiple-value-bind (ceiled diff)
+  (multiple-value-bind (ceiled)
       (ceiling num) ceiled))
 
 
-(defun get-possible-#Es (p-d-e)
-  (let* ((succ-p (1+ (car p-d-e)))
-         (d (cadr p-d-e)) (e (caddr p-d-e))
-         (possible-s (list (+ d e) (- (* 2 d) e) (- d (* 2 e)))))
+(defun is-power-residue (b p-char power)
+  (when (or (= 2 power) (= 3 power))
+    (= 1 (mod-expt b (div (1- p-char) power) p-char))))
+
+
+(defun compute-legendre (a p)
+  (when (zerop (mod a p))
+    (return-from compute-legendre 0))
+  (if (null (is-power-residue a p 2))
+      (return-from compute-legendre (- 1))
+      (return-from compute-legendre 1)))
+
+
+(defun square-root-q-5-mod-8 (a p)
+  (let ((b (mod-expt a (div (+ 3 p) 8) p))
+        (c (mod-expt a (div (1- p) 4) p))
+        (i nil) (xs nil))
+    (when (not (= 1 c))
+      (return-from square-root-q-5-mod-8 -1))
+    (setq i (mod-expt 2 (div (1- p) 4) p)
+          xs (list (mod (* b i) p) (mod (* (mod (- b) p) i) p)))
+    xs))
+
+
+(defun square-root-q-3-mod-4 (a p)
+  (let ((x (mod-expt a (div (1+ p) 4) p)))
+    (if (= (mod a p) (mod (* x x) p))
+        x
+        -1)))
+
+
+(defun compute-u (D p)
+  (let ((u nil))
+    (when (= 3 (mod p 4))
+      (setq u (square-root-q-3-mod-4 D p)))
+    (when (= 5 (mod p 8))
+      (setq u (square-root-q-5-mod-8 D p)))
+    u))
+
+
+(defun get-ring-factorization (p-char &optional (D 3))
+  (let ((legendre (compute-legendre (- D) p-char))
+        (u-i nil) (iter nil) (u-is nil)
+        (m-i nil) (m-is nil) (a-i nil) (b-i 1)
+        (a-is nil) (b-is nil))
+    (when (= -1 legendre)
+      (return-from get-ring-factorization nil))
+    (setq u-is (cons (compute-u (- D) p-char) u-is)
+          m-is (cons p-char m-is))
+    (do ((i 0 (1+ i)))
+        ((= 1 (car m-is)) (setq a-i u-i
+                                iter (1- i)))
+      (setq u-i (car u-is)
+            m-i (car m-is))
+      (setq m-is (cons (/ (+ (* u-i u-i) D) m-i) m-is)
+            m-i (car m-is)
+            u-is (cons (min (mod u-i m-i) (mod (- m-i u-i) m-i)) u-is)))
+    (setq u-is (cddr u-is))
+    (do ((j iter (1- j)))
+        ((zerop j) (list a-i b-i))
+      (setq u-i (car u-is))
+      (psetq a-is (list (/ (+ (*    u-i  a-i) (* D b-i)) (+ (* a-i a-i) (* D b-i b-i)))
+                        (/ (+ (* (- u-i) a-i) (* D b-i)) (+ (* a-i a-i) (* D b-i b-i))))
+             b-is (list (/ (+ (- a-i) (* u-i b-i)) (+ (* a-i a-i) (* D b-i b-i)))
+                        (/ (- (- a-i) (* u-i b-i)) (+ (* a-i a-i) (* D b-i b-i)))))
+      (if (integerp (car a-is))
+          (setq a-i (car a-is))
+          (setq a-i (cadr a-is)))
+      (if (integerp (car b-is))
+          (setq b-i (car b-is))
+          (setq b-i (cadr b-is)))
+      (setq m-is (cdr m-is)
+            u-is (cdr u-is)))))
+
+
+(defun get-char-and-factors (target-length)
+  (let ((p-char nil) (factors nil))
+    (while t
+      (setq p-char (generate-prime target-length))
+      (when (and (= 1 (mod p-char 6)) (= 3 (mod p-char 4)))
+        (setq factors (get-ring-factorization p-char))
+        (cond ((null factors) nil)
+              (t (return-from get-char-and-factors (cons p-char factors))))))))
+
+
+(defun get-possible-#Es (p-c-d)
+  (let* ((succ-p (1+ (car p-c-d)))
+         (c (cadr p-c-d)) (d (caddr p-c-d))
+         (possible-s (list (+ c (* 3 d)) (- c (* 3 d)) (* 2 c))))
     (append (mapcar #'(lambda (s) (+ succ-p s)) possible-s)
             (mapcar #'(lambda (s) (- succ-p s)) possible-s))))
 
@@ -151,11 +212,6 @@
     (list (list x0 y0) b)))
 
 
-(defun is-power-residue (b p-char power)
-  (when (or (= 2 power) (= 3 power))
-    (= 1 (mod-expt b (div (1- p-char) power) p-char))))
-
-
 (defun check-residues (b p-char divisor)
   (cond ((= 1 divisor) (and (not (is-power-residue b p-char 2))
                             (not (is-power-residue b p-char 3))))
@@ -168,29 +224,56 @@
         (t nil)))
 
 
-(defun generate-curve (req-length)
-  (let* ((p-d-e (get-char-and-factors req-length))
+(defun read-required-length ()
+  (format t "Введите требуемую длину n характеристики поля в битах (n > 7): ")
+  (let ((length (read)))
+    (while (or (not (integerp length)) (< length 8))
+      (format t "Некорректный ввод. Попробуйте ввести значение длины n снова: ")
+      (setq length (read)))
+    length))
+
+
+(defun read-m-sec-param ()
+  (format t "Введите параметр безопасности m (m -- натуральное число): ")
+  (let ((m-sec (read)))
+    (while (or (not (integerp m-sec)) (> 1 m-sec))
+      (format t "Некорректный ввод. Попробуйте ввести значение параметра безопасности m снова: ")
+      (setq m-sec (read)))
+    m-sec))
+
+
+(defun generate-curve ()
+  (let* ((req-length (read-required-length))
+         (m-sec (read-m-sec-param))
+         (p-d-e (get-char-and-factors req-length))
          (p-char (car p-d-e))
          (Es (get-possible-#Es p-d-e))
          (E-m-divisor (check-equalities Es))
          (P0-and-b nil) (generator nil))
-    (while (null E-m-divisor)
-      (setq p-d-e (get-char-and-factors req-length)
-            p-char (car p-d-e)
-            Es (get-possible-#Es p-d-e)
-            E-m-divisor (check-equalities Es)))
-    (setq E-m-divisor (car E-m-divisor))
     (tagbody
-     generate-point-and-b
-       (setq P0-and-b (generate-P0-and-b p-char))
-       (when (not (check-residues (cadr P0-and-b) p-char (caddr E-m-divisor)))
-         (go generate-point-and-b))
-      (if (eql (ec-arith::scalar-product (car E-m-divisor)
-                                          (car P0-and-b)
-                                          p-char)
-                EC-ARITH::'INF)
-           (setq generator (ec-arith::scalar-product (caddr E-m-divisor)
-                                                     (car P0-and-b)
-                                                     p-char))
-           (go generate-point-and-b)))
+     generate-p
+       (while (null E-m-divisor)
+         (setq p-d-e (get-char-and-factors req-length)
+               p-char (car p-d-e)
+               Es (get-possible-#Es p-d-e)
+               E-m-divisor (check-equalities Es)))
+       (setq E-m-divisor (car E-m-divisor))
+       (when (= (cadr E-m-divisor) p-char)
+         (go generate-p))
+       (dotimes (iter m-sec)
+         (when (= 1 (mod-expt p-char (1+ iter) (cadr E-m-divisor)))
+           (go generate-p))))
+       (tagbody
+        generate-point-and-b
+          (setq P0-and-b (generate-P0-and-b p-char))
+          (when (not (check-residues (cadr P0-and-b) p-char (caddr E-m-divisor)))
+            (go generate-point-and-b))
+          (if (eql (ec-arith::scalar-product (car E-m-divisor)
+                                             (car P0-and-b)
+                                             p-char)
+                   EC-ARITH::'INF)
+              (setq generator (ec-arith::scalar-product (caddr E-m-divisor)
+                                                        (car P0-and-b)
+                                                        p-char))
+              (go generate-point-and-b)))
     (list p-char (cadr P0-and-b) (cadr E-m-divisor) generator)))

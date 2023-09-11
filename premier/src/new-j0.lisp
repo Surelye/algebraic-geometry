@@ -4,11 +4,6 @@
 (in-package #:gen-ec)
 
 
-(defvar list-of-primes (list 131 137 139 149 151 157 163 167
-                             173 179 181 191 193 197 199 211
-                             223 227 229 233 239 241 251))
-
-
 (defmacro while (condition &body body)
   `(loop while ,condition
          do (progn ,@body)))
@@ -23,18 +18,6 @@
     bit-length))
 
 
-(defun generate-s-even (s-even-length)
-  (let* ((s-even (list 1))
-         (extra-bits-num 2)
-         (total-length (+ s-even-length extra-bits-num)))
-    (dotimes (iter s-even-length)
-      (setq s-even (cons (random 2) s-even)))
-    (setq s-even (cons 0 s-even))
-    (apply #'+ (mapcar #'(lambda (bit power) (if (= bit 1) (expt 2 power) 0))
-                       s-even
-                       (loop for pow from 0 to (1- total-length) collect pow)))))
-
-
 (defun mod-expt (base power divisor)
   (setq base (mod base divisor))
   (do ((product 1))
@@ -46,20 +29,64 @@
           power (1- power))))
 
 
+(defun from-binary-to-decimal (binary-form)
+  (apply #'+ (mapcar #'(lambda (bit power) (* bit (expt 2 power)))
+                     binary-form
+                     (loop for i from (1- (length binary-form)) downto 0
+                           collect i))))
+
+
+(defun miller-rabin (num &optional (rounds 10))
+  (when (or (= 2 num) (= 3 num)) (return-from miller-rabin t))
+  (when (zerop (mod num 2)) (return-from miller-rabin nil))
+  (let* ((n-pred (1- num)) (s 0) (t-val n-pred) (round-num 0) (a nil) (x nil))
+    (while (zerop (mod t-val 2)) (setq s (1+ s) t-val (ash t-val -1)))
+    (tagbody
+     next-iteration
+       (while (< round-num rounds)
+         (setq a (+ 2 (random (- num 3)))
+               x (mod-expt a t-val num))
+         (when (or (= x 1) (= x n-pred))
+           (setq round-num (1+ round-num)) (go next-iteration))
+         (dotimes (iter (1- s))
+           (setq x (mod (* x x) num))
+           (when (= 1 x) (return-from miller-rabin nil))
+           (when (= n-pred x)
+             (setq round-num (1+ round-num)) (go next-iteration)))
+         (return-from miller-rabin nil))
+       (return-from miller-rabin t))))
+
+
+(defun find-prime-mod-6 (lower-bound upper-bound starter)
+  (let ((rem (mod starter 6))
+        (starter-copy))
+    (cond ((= 3 rem) (setq starter (- starter 2)))
+          ((= 5 rem) (setq starter (- starter 4)))
+          (t))
+    (when (< starter lower-bound) (setq starter (+ 6 starter)))
+    (setq starter-copy starter)
+    (do ((iter starter (+ 6 iter)))
+        ((> iter upper-bound))
+      (when (miller-rabin iter) (return-from find-prime-mod-6 iter)))
+    (do ((iter (+ 1 lower-bound (- 6 (mod lower-bound 6))) (+ 6 iter)))
+        ((> iter starter-copy))
+      (when (miller-rabin iter) (return-from find-prime-mod-6 iter)))
+    nil))
+
+
 (defun generate-prime (target-length)
-  (let* ((primes-length (length list-of-primes))
-         (q-prime (nth (random primes-length) list-of-primes))
-         (q-prime-length (get-bit-length q-prime))
-         (s-even-length nil) (s-even nil) (q-s-product nil) (p-prime nil))
-    (while (< q-prime-length target-length)
-      (setq s-even-length (- target-length q-prime-length)
-            s-even (generate-s-even s-even-length)
-            q-s-product (* q-prime s-even)
-            p-prime (1+ q-s-product))
-      (when (and (= 1 (mod-expt 2 q-s-product p-prime)) (/= 1 (mod-expt 2 s-even p-prime)))
-        (setq q-prime p-prime
-              q-prime-length (get-bit-length q-prime))))
-    q-prime))
+  (let* ((bits-generated (- target-length 3))
+         (lower-bound (from-binary-to-decimal
+                       (cons 1 (append (loop for i from 0 to bits-generated
+                                             collect 0) '(1)))))
+         (upper-bound (from-binary-to-decimal
+                       (cons 1 (append (loop for i from 0 to bits-generated
+                                             collect 1) '(1)))))
+         (prime? (from-binary-to-decimal
+                  (cons 1 (append (loop for i from 0 to bits-generated
+                                        collect (random 2)) '(1))))))
+    (when (miller-rabin prime?) (return-from generate-prime prime?))
+    (find-prime-mod-6 lower-bound upper-bound prime?)))
 
 
 (defun div (dividend divider)
@@ -80,20 +107,20 @@
 (defun compute-legendre (a p)
   (when (zerop (mod a p))
     (return-from compute-legendre 0))
-  (if (null (is-power-residue a p 2))
-      (return-from compute-legendre (- 1))
-      (return-from compute-legendre 1)))
+  (if (null (is-power-residue a p 2)) -1 1))
 
 
 (defun square-root-q-5-mod-8 (a p)
   (let ((b (mod-expt a (div (+ 3 p) 8) p))
         (c (mod-expt a (div (1- p) 4) p))
         (i nil) (xs nil))
-    (when (not (= 1 c))
+    (when (and (/= 1 c) (/= (1- p) c))
       (return-from square-root-q-5-mod-8 -1))
+    (when (= 1 c)
+      (return-from square-root-q-5-mod-8 (min b (mod (- b) p))))
     (setq i (mod-expt 2 (div (1- p) 4) p)
           xs (list (mod (* b i) p) (mod (* (mod (- b) p) i) p)))
-    xs))
+    (apply #'min xs)))
 
 
 (defun square-root-q-3-mod-4 (a p)
@@ -151,10 +178,16 @@
   (let ((p-char nil) (factors nil))
     (while t
       (setq p-char (generate-prime target-length))
-      (when (and (= 1 (mod p-char 6)) (= 3 (mod p-char 4)))
+      (when (and (= 1 (mod p-char 6))
+                 (or (= 5 (mod p-char 8)) (= 3 (mod p-char 4))))
+        (format t "Пробуем разложить число 0x~X...~%" p-char)
         (setq factors (get-ring-factorization p-char))
-        (cond ((null factors) nil)
-              (t (return-from get-char-and-factors (cons p-char factors))))))))
+        (cond ((null factors) (format t "Разложить число не получилось. Сгенерируем новое.~%"))
+              (t (format t "Была сгенерирована характеристика поля p = 0x~X с длиной ~d битов.~%"
+                         p-char (get-bit-length p-char))
+                 (format t "Элементы разложения: d = 0x~X и e = 0x~X.~%"
+                         (car factors) (cadr factors))
+                 (return-from get-char-and-factors (cons p-char factors))))))))
 
 
 (defun get-possible-#Es (p-c-d)
@@ -169,27 +202,6 @@
   (lambda (dividend) (zerop (mod dividend divider))))
 
 
-(defun miller-rabin (num &optional (rounds 10))
-  (when (or (= 2 num) (= 3 num)) (return-from miller-rabin t))
-  (when (zerop (mod num 2)) (return-from miller-rabin nil))
-  (let* ((n-pred (1- num)) (s 0) (t-val n-pred) (round-num 0) (a nil) (x nil))
-    (while (zerop (mod t-val 2)) (setq s (1+ s) t-val (ash t-val -1)))
-    (tagbody
-     next-iteration
-       (while (< round-num rounds)
-         (setq a (+ 2 (random (- num 3)))
-               x (mod-expt a t-val num))
-         (when (or (= x 1) (= x n-pred))
-           (setq round-num (1+ round-num)) (go next-iteration))
-         (dotimes (iter (1- s))
-           (setq x (mod (* x x) num))
-           (when (= 1 x) (return-from miller-rabin nil))
-           (when (= n-pred x)
-             (setq round-num (1+ round-num)) (go next-iteration)))
-         (return-from miller-rabin nil))
-       (return-from miller-rabin t))))
-
-
 (defun check-equalities (possible-#Es)
   (let ((divisors '(1 6 3 2)) (E-m-divisor nil)
         (m nil))
@@ -200,7 +212,7 @@
           (when (miller-rabin m)
             (setq E-m-divisor (cons (list E# m divisor) E-m-divisor))))))
     E-m-divisor))
-    
+
 
 (defun generate-P0-and-b (p-char)
   (let ((x0 0) (y0 0) (b nil))
@@ -224,15 +236,43 @@
         (t nil)))
 
 
-(defun generate-curve (req-length m-sec)
-  (let* ((p-d-e (get-char-and-factors req-length))
+(defun read-required-length ()
+  (format t "Введите требуемую длину n характеристики поля в битах (n > 7): ")
+  (let ((length (read)))
+    (while (or (not (integerp length)) (< length 8))
+      (format t "Некорректный ввод. Попробуйте ввести значение длины n снова: ")
+      (setq length (read)))
+    length))
+
+
+(defun read-m-sec-param ()
+  (format t "Введите параметр безопасности m (m -- натуральное число): ")
+  (let ((m-sec (read)))
+    (while (or (not (integerp m-sec)) (> 1 m-sec))
+      (format t "Некорректный ввод. Попробуйте ввести значение параметра безопасности m снова: ")
+      (setq m-sec (read)))
+    m-sec))
+
+
+(defun write-to-file (list-to-write &optional (filename "subgroup"))
+  (with-open-file (out filename :direction :output :if-exists :supersede
+                                :if-does-not-exist :create)
+    (dolist (point list-to-write)
+      (format out "~A~%" point))))
+
+
+(defun generate-curve ()
+  (let* ((req-length (read-required-length))
+         (m-sec (read-m-sec-param))
+         (p-d-e (get-char-and-factors req-length))
          (p-char (car p-d-e))
          (Es (get-possible-#Es p-d-e))
          (E-m-divisor (check-equalities Es))
-         (P0-and-b nil) (generator nil))
+         (P0-and-b) (generator) (subgroup))
     (tagbody
      generate-p
        (while (null E-m-divisor)
+         (format t "Равенство и условия следствия не выполнены. Повторно сгенерируем характеристику поля.~%")
          (setq p-d-e (get-char-and-factors req-length)
                p-char (car p-d-e)
                Es (get-possible-#Es p-d-e)
@@ -256,4 +296,14 @@
                                                         (car P0-and-b)
                                                         p-char))
               (go generate-point-and-b)))
+    (format t "Получены значения:
+~t~tхарактеристики поля p = 0x~X;
+~t~tкоэффициента уравнения ЭК -- b = 0x~X;
+~t~tпорядка циклической группы -- m = 0x~X;
+~t~tгенератора циклической подгруппы G = (~{0x~X~^, ~})."
+            p-char (cadr P0-and-b) (cadr E-m-divisor) generator)
+    (when (y-or-n-p "Хотите сгенерировать циклическую подгруппу?")
+      (setq subgroup (ec-arith::generate-subgroup generator p-char))
+      (write-to-file subgroup)
+      (format t "Получившаяся подгруппа была записана в файл subgroup.~%"))
     (list p-char (cadr P0-and-b) (cadr E-m-divisor) generator)))

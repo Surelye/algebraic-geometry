@@ -39,8 +39,7 @@
         (frac nil))
     (cond
       ((/= Px Qx) (setq frac (* (- Qy Py)
-                                (cadr (extended-gcd (mod (- Qx Px) modulo)
-                                                    modulo)))
+                                (cadr (extended-gcd (mod (- Qx Px) modulo) modulo)))
                         Rx (- (* frac frac) (+ Px Qx))
                         Ry (+ (- Py) (* frac (- Px Rx)))))
       (t (cond
@@ -61,3 +60,11 @@
       (setq addend (add-points addend addend modulo)
             n (ash n -1)))
     result))
+
+
+(defun generate-subgroup (generator modulo)
+  (let* ((accum generator) (subgroup (list accum)))
+    (while (not (eql 'INF accum))
+      (setq accum (add-points accum generator modulo)
+            subgroup (cons accum subgroup)))
+    subgroup))
