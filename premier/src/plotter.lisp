@@ -13,13 +13,14 @@
   (let ((data (make-df '(:x-coord :y-coord)
                        (list (coerce xs 'vector) (coerce ys 'vector)))))
     (vega:plot-to-device plots-loc
-     (vega:defplot histogram-scatterplot
-         `(:title "График точек эллиптической кривой над конечным полем"
-           :width 800
-           :height 800
-           :mark :circle
-           :data ,data
-           :encoding (:x (:bin (:maxbins 200) :field :x-coord)
-                      :y (:bin (:maxbins 200) :field :y-coord)
-                      :size (:aggregate :count)))))
-    (plot:plot histogram-scatterplot)))
+                         (vega:defplot histogram-scatterplot
+                             `(:title "График точек эллиптической кривой над конечным полем"
+                               :width 800
+                               :height 800
+                               :mark :circle
+                               :data ,data
+                               :encoding (:x (:bin (:maxbins 200) :field :x-coord)
+                                          :y (:bin (:maxbins 200) :field :y-coord)
+                                          :size (:aggregate :count)))))
+    (plot:plot histogram-scatterplot)
+    (uiop:run-program "./script.sh")))

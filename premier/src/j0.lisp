@@ -9,15 +9,6 @@
          do (progn ,@body)))
 
 
-(defun get-bit-length (number)
-  (let ((bit-length 0))
-    (if (zerop number) (setq bit-length 1)
-        (while (not (zerop number))
-          (setq number (ash number -1)
-                bit-length (1+ bit-length))))
-    bit-length))
-
-
 (defun mod-expt (base power divisor)
   (setq base (mod base divisor))
   (do ((product 1))
@@ -38,8 +29,8 @@
 
 (defun miller-rabin (num &optional (rounds 10))
   (when (or (= 2 num) (= 3 num)) (return-from miller-rabin t))
-  (when (zerop (mod num 2)) (return-from miller-rabin nil))
-  (let* ((n-pred (1- num)) (s 0) (t-val n-pred) (round-num 0) (a nil) (x nil))
+  (when (zerop (logand num 1)) (return-from miller-rabin))
+  (let* ((n-pred (1- num)) (s 0) (t-val n-pred) (round-num 0) (a) (x))
     (while (zerop (mod t-val 2)) (setq s (1+ s) t-val (ash t-val -1)))
     (tagbody
      next-iteration
@@ -53,7 +44,7 @@
            (when (= 1 x) (return-from miller-rabin nil))
            (when (= n-pred x)
              (setq round-num (1+ round-num)) (go next-iteration)))
-         (return-from miller-rabin nil))
+         (return-from miller-rabin))
        (return-from miller-rabin t))))
 
 
@@ -70,8 +61,7 @@
       (when (miller-rabin iter) (return-from find-prime-mod-6 iter)))
     (do ((iter (+ 1 lower-bound (- 6 (mod lower-bound 6))) (+ 6 iter)))
         ((> iter starter-copy))
-      (when (miller-rabin iter) (return-from find-prime-mod-6 iter)))
-    nil))
+      (when (miller-rabin iter) (return-from find-prime-mod-6 iter)))))
 
 
 (defun generate-prime (target-length)
@@ -94,6 +84,32 @@
       (floor dividend divider) quotient))
 
 
+(defun extended-euclidean-algorithm-machinerie (f-num s-num)
+  (let ((prev-u 1) (u 0)
+        (prev-v 0) (v 1)
+        (quotient) (flag))
+    (when (> s-num f-num) (psetq f-num s-num
+                                 s-num f-num
+                                 flag t))
+    (while (not (zerop (mod f-num s-num)))
+      (psetq quotient (div f-num s-num)
+             f-num s-num
+             s-num (mod f-num s-num))
+      (psetq prev-u u
+             u (- prev-u (* quotient u))
+             prev-v v
+             v (- prev-v (* quotient v))))
+    (if flag (list s-num v u) (list s-num u v))))
+
+
+(defun extended-euclidean-algorithm (f-num s-num)
+  (cond ((not (and (integerp f-num) (integerp s-num))) nil)
+        ((and (zerop f-num) (zerop s-num)) (list 0 0 0))
+        ((zerop f-num) (list s-num 0 1))
+        ((zerop s-num) (list f-num 1 0))
+        (t (extended-euclidean-algorithm-machinerie (abs f-num) (abs s-num)))))
+
+
 (defun ceil (num)
   (multiple-value-bind (ceiled)
       (ceiling num) ceiled))
@@ -107,36 +123,50 @@
 (defun compute-legendre (a p)
   (when (zerop (mod a p))
     (return-from compute-legendre 0))
-  (if (null (is-power-residue a p 2)) -1 1))
+  (if (is-power-residue a p 2) 1 -1))
 
 
-(defun square-root-q-5-mod-8 (a p)
-  (let ((b (mod-expt a (div (+ 3 p) 8) p))
-        (c (mod-expt a (div (1- p) 4) p))
-        (i nil) (xs nil))
-    (when (and (/= 1 c) (/= (1- p) c))
-      (return-from square-root-q-5-mod-8 -1))
-    (when (= 1 c)
-      (return-from square-root-q-5-mod-8 (min b (mod (- b) p))))
-    (setq i (mod-expt 2 (div (1- p) 4) p)
-          xs (list (mod (* b i) p) (mod (* (mod (- b) p) i) p)))
-    (apply #'min xs)))
+(defun find-k-i (a-i q p)
+  (do ((k 0 (1+ k))) ((= 1 (mod-expt a-i (* (expt 2 k) q) p)) k)))
 
 
-(defun square-root-q-3-mod-4 (a p)
-  (let ((x (mod-expt a (div (1+ p) 4) p)))
-    (if (= (mod a p) (mod (* x x) p))
-        x
-        -1)))
+(defun get-inv (a p)
+  (cadr (extended-euclidean-algorithm a p)))
+
+
+(defun seq-sqrt-Zp (a p)
+  (when (= -1 (compute-legendre a p)) (return-from seq-sqrt-Zp))
+  (let ((b) (k-is) (k-i -1) (r-i) (m 0) (q (1- p))
+        (up-bound (- p 2)) (a-i a) (a-i-next a)
+        (pow-r-i) (2-inv) (2-exp))
+    (while (zerop (logand q 1))
+      (setq m (1+ m)
+            q (ash q -1)))
+    (while (/= -1 (compute-legendre (setq b (+ 2 (random up-bound))) p)))
+    (while (not (zerop k-i))
+      (setq k-i (find-k-i a-i-next q p)
+            k-is (cons k-i k-is))
+      (psetq a-i-next (mod (* a-i-next (mod-expt b (expt 2 (- m k-i)) p)) p)
+             a-i a-i-next))
+    (setq k-is (cdr k-is)
+          r-i (mod-expt a-i (ash (1+ q) -1) p))
+    (do ((i (length k-is) (1- i))) ((= i 0) r-i)
+      (setq pow-r-i (- m (car k-is) 1))
+      (if (< pow-r-i 0)
+          (setq 2-inv (mod (get-inv 2 p) p)
+                2-exp (mod-expt 2-inv (- pow-r-i) p)))
+          (setq 2-exp (mod-expt 2 pow-r-i p))
+      (setq 2-inv (mod (get-inv (mod-expt b 2-exp p) p) p)
+            r-i (mod (* r-i 2-inv) p)
+            k-is (cdr k-is)))))
 
 
 (defun compute-u (D p)
-  (let ((u nil))
-    (when (= 3 (mod p 4))
-      (setq u (square-root-q-3-mod-4 D p)))
-    (when (= 5 (mod p 8))
-      (setq u (square-root-q-5-mod-8 D p)))
-    u))
+  (let* ((D-normed (mod D p))
+         (root? (seq-sqrt-zp D-normed p)))
+    (while (/= D-normed (mod (* root? root?) p))
+      (setq root? (seq-sqrt-zp D-normed p)))
+    root?))
 
 
 (defun get-ring-factorization (p-char &optional (D 3))
@@ -145,7 +175,7 @@
         (m-i nil) (m-is nil) (a-i nil) (b-i 1)
         (a-is nil) (b-is nil))
     (when (= -1 legendre)
-      (return-from get-ring-factorization nil))
+      (return-from get-ring-factorization))
     (setq u-is (cons (compute-u (- D) p-char) u-is)
           m-is (cons p-char m-is))
     (do ((i 0 (1+ i)))
@@ -178,13 +208,11 @@
   (let ((p-char nil) (factors nil))
     (while t
       (setq p-char (generate-prime target-length))
-      (when (and (= 1 (mod p-char 6))
-                 (or (= 5 (mod p-char 8)) (= 3 (mod p-char 4))))
-        (format t "Пробуем разложить число 0x~X...~%" p-char)
+      (when (= 1 (mod p-char 6))
         (setq factors (get-ring-factorization p-char))
         (cond ((null factors) (format t "Разложить число не получилось. Сгенерируем новое.~%"))
               (t (format t "Была сгенерирована характеристика поля p = 0x~X с длиной ~d битов.~%"
-                         p-char (get-bit-length p-char))
+                         p-char (length (write-to-string p-char :base 2)))
                  (format t "Элементы разложения: d = 0x~X и e = 0x~X.~%"
                          (car factors) (cadr factors))
                  (return-from get-char-and-factors (cons p-char factors))))))))
@@ -203,8 +231,7 @@
 
 
 (defun check-equalities (possible-#Es)
-  (let ((divisors '(1 6 3 2)) (E-m-divisor nil)
-        (m nil))
+  (let ((divisors '(1 6 3 2)) (E-m-divisor) (m))
     (dolist (divisor divisors)
       (dolist (E# possible-#Es)
         (when (funcall (routine divisor) E#)
@@ -277,7 +304,7 @@
                p-char (car p-d-e)
                Es (get-possible-#Es p-d-e)
                E-m-divisor (check-equalities Es)))
-       (setq E-m-divisor (car E-m-divisor))
+       (setq E-m-divisor (nth (random (length E-m-divisor)) E-m-divisor))
        (when (= (cadr E-m-divisor) p-char)
          (go generate-p))
        (dotimes (iter m-sec)
@@ -304,8 +331,9 @@
             p-char (cadr P0-and-b) (cadr E-m-divisor) generator)
     (when (y-or-n-p "Хотите сгенерировать циклическую подгруппу?")
       (setq subgroup (ec-arith::generate-subgroup generator p-char))
-      (write-to-file subgroup)
-      (format t "Получившаяся подгруппа была записана в файл subgroup.~%")
+      (when (y-or-n-p "Хотите записать сгенерированную подгруппу в файл?")
+        (write-to-file subgroup)
+        (format t "Получившаяся подгруппа была записана в файл subgroup.~%"))
       (setq subgroup (cdr subgroup))
       (ls-user::draw-plot (mapcar #'car subgroup) (mapcar #'cadr subgroup)))
     (list p-char (cadr P0-and-b) (cadr E-m-divisor) generator)))
