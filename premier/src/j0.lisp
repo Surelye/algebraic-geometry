@@ -32,8 +32,7 @@
   (when (zerop (logand num 1)) (return-from miller-rabin))
   (let* ((n-pred (1- num)) (s 0) (t-val n-pred) (round-num 0) (a) (x))
     (while (zerop (mod t-val 2)) (setq s (1+ s) t-val (ash t-val -1)))
-    (tagbody
-     next-iteration
+    (tagbody next-iteration
        (while (< round-num rounds)
          (setq a (+ 2 (random (- num 3)))
                x (mod-expt a t-val num))
@@ -41,7 +40,7 @@
            (setq round-num (1+ round-num)) (go next-iteration))
          (dotimes (iter (1- s))
            (setq x (mod (* x x) num))
-           (when (= 1 x) (return-from miller-rabin nil))
+           (when (= 1 x) (return-from miller-rabin))
            (when (= n-pred x)
              (setq round-num (1+ round-num)) (go next-iteration)))
          (return-from miller-rabin))
@@ -51,13 +50,11 @@
 (defun find-prime-mod-6 (lower-bound upper-bound starter)
   (let ((rem (mod starter 6))
         (starter-copy))
-    (cond ((= 3 rem) (setq starter (- starter 2)))
-          ((= 5 rem) (setq starter (- starter 4)))
-          (t))
+    (when (= 3 rem) (setq starter (- starter 2)))
+    (when (= 5 rem) (setq starter (- starter 4)))
     (when (< starter lower-bound) (setq starter (+ 6 starter)))
     (setq starter-copy starter)
-    (do ((iter starter (+ 6 iter)))
-        ((> iter upper-bound))
+    (do ((iter starter (+ 6 iter))) ((> iter upper-bound))
       (when (miller-rabin iter) (return-from find-prime-mod-6 iter)))
     (do ((iter (+ 1 lower-bound (- 6 (mod lower-bound 6))) (+ 6 iter)))
         ((> iter starter-copy))
@@ -75,7 +72,8 @@
          (prime? (from-binary-to-decimal
                   (cons 1 (append (loop for i from 0 to bits-generated
                                         collect (random 2)) '(1))))))
-    (when (miller-rabin prime?) (return-from generate-prime prime?))
+    (when (and (= 1 (mod prime? 6)) (miller-rabin prime?))
+      (return-from generate-prime prime?))
     (find-prime-mod-6 lower-bound upper-bound prime?)))
 
 
@@ -84,30 +82,18 @@
       (floor dividend divider) quotient))
 
 
-(defun extended-euclidean-algorithm-machinerie (f-num s-num)
-  (let ((prev-u 1) (u 0)
-        (prev-v 0) (v 1)
-        (quotient) (flag))
-    (when (> s-num f-num) (psetq f-num s-num
-                                 s-num f-num
-                                 flag t))
-    (while (not (zerop (mod f-num s-num)))
-      (psetq quotient (div f-num s-num)
-             f-num s-num
-             s-num (mod f-num s-num))
-      (psetq prev-u u
-             u (- prev-u (* quotient u))
-             prev-v v
-             v (- prev-v (* quotient v))))
-    (if flag (list s-num v u) (list s-num u v))))
-
-
 (defun extended-euclidean-algorithm (f-num s-num)
-  (cond ((not (and (integerp f-num) (integerp s-num))) nil)
-        ((and (zerop f-num) (zerop s-num)) (list 0 0 0))
-        ((zerop f-num) (list s-num 0 1))
-        ((zerop s-num) (list f-num 1 0))
-        (t (extended-euclidean-algorithm-machinerie (abs f-num) (abs s-num)))))
+  (let ((s 0) (s-old 1) (t-val 1) (t-old 0)
+        (r s-num) (r-old f-num) (quotient))
+    (while (not (zerop r))
+      (setq quotient (div r-old r))
+      (psetq r-old r
+             r (- r-old (* quotient r)))
+      (psetq s-old s
+             s (- s-old (* quotient s)))
+      (psetq t-old t-val
+             t-val (- t-old (* quotient t-val))))
+    (list r-old s-old t-old)))
 
 
 (defun ceil (num)
@@ -173,7 +159,8 @@
   (let ((legendre (compute-legendre (- D) p-char))
         (u-i nil) (iter nil) (u-is nil)
         (m-i nil) (m-is nil) (a-i nil) (b-i 1)
-        (a-is nil) (b-is nil))
+        (a-is nil) (b-is nil) (a-i-f-num)
+        (a-i-s-num) (b-i-num) (denom))
     (when (= -1 legendre)
       (return-from get-ring-factorization))
     (setq u-is (cons (compute-u (- D) p-char) u-is)
@@ -189,11 +176,15 @@
     (setq u-is (cddr u-is))
     (do ((j iter (1- j)))
         ((zerop j) (list a-i b-i))
-      (setq u-i (car u-is))
-      (psetq a-is (list (/ (+ (*    u-i  a-i) (* D b-i)) (+ (* a-i a-i) (* D b-i b-i)))
-                        (/ (+ (* (- u-i) a-i) (* D b-i)) (+ (* a-i a-i) (* D b-i b-i))))
-             b-is (list (/ (+ (- a-i) (* u-i b-i)) (+ (* a-i a-i) (* D b-i b-i)))
-                        (/ (- (- a-i) (* u-i b-i)) (+ (* a-i a-i) (* D b-i b-i)))))
+      (setq u-i (car u-is)
+            a-i-f-num (* u-i a-i)
+            a-i-s-num (* D b-i)
+            b-i-num (* u-i b-i)
+            denom (+ (* a-i a-i) (* D b-i b-i)))
+      (psetq a-is (list (/ (+ a-i-f-num a-i-s-num) denom)
+                        (/ (- a-i-f-num a-i-s-num) denom))
+             b-is (list (/ (+ (- a-i) b-i-num) denom)
+                        (/ (- (- a-i) b-i-num) denom)))
       (if (integerp (car a-is))
           (setq a-i (car a-is))
           (setq a-i (cadr a-is)))
@@ -205,17 +196,15 @@
 
 
 (defun get-char-and-factors (target-length)
-  (let ((p-char nil) (factors nil))
-    (while t
-      (setq p-char (generate-prime target-length))
-      (when (= 1 (mod p-char 6))
-        (setq factors (get-ring-factorization p-char))
-        (cond ((null factors) (format t "Разложить число не получилось. Сгенерируем новое.~%"))
-              (t (format t "Была сгенерирована характеристика поля p = 0x~X с длиной ~d битов.~%"
-                         p-char (length (write-to-string p-char :base 2)))
-                 (format t "Элементы разложения: d = 0x~X и e = 0x~X.~%"
-                         (car factors) (cadr factors))
-                 (return-from get-char-and-factors (cons p-char factors))))))))
+  (let ((p-char) (factors))
+    (while (null (setq p-char (generate-prime target-length)
+                       factors (get-ring-factorization p-char)))
+      (format t "Разложить число не получилось. Сгенерируем новое.~%"))
+    (format t "Была сгенерирована характеристика поля p = 0x~X с длиной ~d битов.~%"
+            p-char (length (write-to-string p-char :base 2)))
+    (format t "Элементы разложения: d = 0x~X и e = 0x~X.~%"
+            (car factors) (cadr factors))
+    (cons p-char factors)))
 
 
 (defun get-possible-#Es (p-c-d)
@@ -289,40 +278,34 @@
 
 
 (defun generate-curve ()
-  (let* ((req-length (read-required-length))
-         (m-sec (read-m-sec-param))
-         (p-d-e (get-char-and-factors req-length))
-         (p-char (car p-d-e))
-         (Es (get-possible-#Es p-d-e))
-         (E-m-divisor (check-equalities Es))
-         (P0-and-b) (generator) (subgroup))
-    (tagbody
-     generate-p
-       (while (null E-m-divisor)
-         (format t "Равенство и условия следствия не выполнены. Повторно сгенерируем характеристику поля.~%")
-         (setq p-d-e (get-char-and-factors req-length)
-               p-char (car p-d-e)
-               Es (get-possible-#Es p-d-e)
-               E-m-divisor (check-equalities Es)))
+  (let ((req-length (read-required-length))
+        (m-sec (read-m-sec-param))
+        (p-d-e) (p-char) (Es) (E-m-divisor)
+        (P0-and-b) (generator) (subgroup))
+    (tagbody generate-p
+       (while (null (setq p-d-e (get-char-and-factors req-length)
+                          p-char (car p-d-e)
+                          Es (get-possible-#Es p-d-e)
+                          E-m-divisor (check-equalities Es)))
+         (format t "Равенство и условия следствия не выполнены. Повторно сгенерируем характеристику поля.~%"))
        (setq E-m-divisor (nth (random (length E-m-divisor)) E-m-divisor))
        (when (= (cadr E-m-divisor) p-char)
          (go generate-p))
        (dotimes (iter m-sec)
          (when (= 1 (mod-expt p-char (1+ iter) (cadr E-m-divisor)))
            (go generate-p))))
-       (tagbody
-        generate-point-and-b
-          (setq P0-and-b (generate-P0-and-b p-char))
-          (when (not (check-residues (cadr P0-and-b) p-char (caddr E-m-divisor)))
-            (go generate-point-and-b))
-          (if (eql (ec-arith::scalar-product (car E-m-divisor)
-                                             (car P0-and-b)
-                                             p-char)
-                   EC-ARITH::'INF)
-              (setq generator (ec-arith::scalar-product (caddr E-m-divisor)
-                                                        (car P0-and-b)
-                                                        p-char))
-              (go generate-point-and-b)))
+    (tagbody generate-point-and-b
+       (setq P0-and-b (generate-P0-and-b p-char))
+       (when (not (check-residues (cadr P0-and-b) p-char (caddr E-m-divisor)))
+         (go generate-point-and-b))
+       (if (eql (ec-arith::scalar-product (car E-m-divisor)
+                                          (car P0-and-b)
+                                          p-char)
+                EC-ARITH::'INF)
+           (setq generator (ec-arith::scalar-product (caddr E-m-divisor)
+                                                     (car P0-and-b)
+                                                     p-char))
+           (go generate-point-and-b)))
     (format t "Получены значения:
 ~t~tхарактеристики поля p = 0x~X;
 ~t~tкоэффициента уравнения ЭК -- b = 0x~X;

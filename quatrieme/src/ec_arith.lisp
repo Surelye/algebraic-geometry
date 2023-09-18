@@ -15,8 +15,7 @@
 
 
 (defun extended-gcd (a b)
-  (let ((s 0) (old-s 1)
-        (r b) (old-r a)
+  (let ((s 0) (old-s 1) (r b) (old-r a)
         (quotient nil) (bezout-t nil))
     (while (not (zerop r))
       (setq quotient (div old-r r))
@@ -29,14 +28,11 @@
 
 
 (defun add-points (P Q modulo)
-  (when (eql P 'INF)
-    (return-from add-points Q))
-  (when (eql Q 'INF)
-    (return-from add-points P))
+  (when (eql P 'INF) (return-from add-points Q))
+  (when (eql Q 'INF) (return-from add-points P))
   (let ((Px (car P)) (Py (cadr P))
         (Qx (car Q)) (Qy (cadr Q))
-        (Rx nil) (Ry nil)
-        (frac nil))
+        (Rx) (Ry) (frac))
     (cond
       ((/= Px Qx) (setq frac (* (- Qy Py)
                                 (cadr (extended-gcd (mod (- Qx Px) modulo)
