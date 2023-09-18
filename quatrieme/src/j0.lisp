@@ -273,10 +273,4 @@
                                                         (car P0-and-b)
                                                         p-char))
               (go generate-point-and-b)))
-    (format t "Получены значения:
-~t~tхарактеристики поля p = 0x~X;
-~t~tкоэффициента уравнения ЭК -- b = 0x~X;
-~t~tпорядка циклической группы -- m = 0x~X;
-~t~tгенератора циклической подгруппы G = (~{0x~X~^, ~})."
-            p-char (cadr P0-and-b) (cadr E-m-divisor) generator)
    (list p-char (cadr P0-and-b) (cadr E-m-divisor) generator)))
