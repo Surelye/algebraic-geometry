@@ -62,35 +62,42 @@
 
 
 (defun generate-common-key (user-data p-char num-users)
-  (let ((current-accum) (prev-accum) (current-secret) (bound) (n-jiter))
+  (let ((current-accum) (prev-accum) (current-secret) (cursed-index) (vile-index))
     (dotimes (iter num-users)
       (setq current-accum (caddr (nth iter user-data))
-            prev-accum current-accum
-            bound (mod (1- iter) num-users))
-      (do ((jiter iter (mod (1+ jiter) num-users)))
-          ((= jiter bound)
-           (progn (setq current-secret (cadr (nth bound user-data))
-                        prev-accum current-accum
-                        current-accum (ec-arith::scalar-product current-secret
-                                                                prev-accum
-                                                                p-char))
-                  (print-status 'DONE (list (name bound user-data)
-                                            current-secret
-                                            prev-accum
-                                            current-accum))))
-        (setq n-jiter (mod (1+ jiter) num-users))
+            prev-accum current-accum)
+      (do ((jiter iter (1+ jiter))) ((= jiter (1- num-users)))
         (if (= iter jiter)
             (print-status 'PASS (list (name jiter user-data) prev-accum
-                                      (name n-jiter user-data)))
-            (progn (setq current-secret (cadr (nth jiter user-data))
-                         prev-accum current-accum
+                                      (name (1+ jiter) user-data)))
+            (progn (setq prev-accum current-accum
+                         current-secret (cadr (nth jiter user-data))
                          current-accum (ec-arith::scalar-product current-secret
                                                                  prev-accum p-char))
                    (print-status 'PASS-COMP (list (name jiter user-data)
-                                                  current-secret
-                                                  prev-accum
+                                                  current-secret prev-accum
                                                   current-accum
-                                                  (name n-jiter user-data)))))))))
+                                                  (name (1+ jiter) user-data))))))
+      (do ((jiter 0 (1+ jiter))) ((= jiter iter))
+        (setq prev-accum current-accum
+              cursed-index (mod (+ (1- num-users) jiter) num-users)
+              current-secret (cadr (nth cursed-index user-data))
+              current-accum (ec-arith::scalar-product current-secret prev-accum p-char))
+        (if (and (= cursed-index (1- num-users)) (= iter (1- num-users)))
+            (progn (setq current-accum (caddr (nth cursed-index user-data))
+                         prev-accum current-accum)
+                   (print-status 'PASS (list (name cursed-index user-data) prev-accum
+                                             (name (mod (1+ cursed-index) num-users) user-data))))
+            (print-status 'PASS-COMP (list (name cursed-index user-data)
+                                           current-secret prev-accum current-accum
+                                           (name (mod (+ num-users jiter) num-users) user-data)))))
+      (setq prev-accum current-accum
+            vile-index (mod (+ iter (1- num-users)) num-users)
+            current-secret (cadr (nth vile-index user-data))
+            current-accum (ec-arith::scalar-product current-secret prev-accum p-char))
+      (print-status 'DONE (list (name vile-index user-data) current-secret
+                                prev-accum current-accum)))
+    (car (p-to-hex current-accum))))
 
 
 (defun print-generated (args)
@@ -116,23 +123,3 @@
                                           (ec-arith::scalar-product current-random generator p-char)))
             common-key (generate-common-key user-data p-char num-users))
       common-key)))
-
-
-(defun read-from-file ()
-  (let ((filename) (message))
-    (tagbody try-again
-       (format t "Введите название файла с сообщением: ")
-       (setq filename (read-line))
-       (when (zerop (length filename)) (setq filename "message"))
-       (handler-case (setq message (uiop:read-file-lines filename))
-         (error (err)
-           (format t "Результатом выполнения программы стала ошибка:~%~a~%" err)
-           (go try-again))))
-    message))
-
-
-(defun messi-omurah ()
-  (let* ((req-length (read-param 'REQ-LENGTH)) (m-sec (read-param 'M-SEC))
-         (params (gen-ec::generate-curve req-length m-sec))
-         (message (read-from-file filename)))
-    message))

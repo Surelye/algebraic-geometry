@@ -157,10 +157,9 @@
 
 (defun get-ring-factorization (p-char &optional (D 3))
   (let ((legendre (compute-legendre (- D) p-char))
-        (u-i nil) (iter nil) (u-is nil)
-        (m-i nil) (m-is nil) (a-i nil) (b-i 1)
-        (a-is nil) (b-is nil) (a-i-f-num)
-        (a-i-s-num) (b-i-num) (denom))
+        (u-i) (iter) (u-is) (m-i) (m-is) (a-i) (b-i 1)
+        (a-is) (b-is) (a-i-f-num) (a-i-s-num) (b-i-num)
+        (denom))
     (when (= -1 legendre)
       (return-from get-ring-factorization))
     (setq u-is (cons (compute-u (- D) p-char) u-is)

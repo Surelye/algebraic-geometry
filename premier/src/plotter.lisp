@@ -15,12 +15,12 @@
     (vega:plot-to-device plots-loc
                          (vega:defplot histogram-scatterplot
                              `(:title "График точек эллиптической кривой над конечным полем"
-                               :width 800
-                               :height 800
+                               :width 1000
+                               :height 1000
                                :mark :circle
                                :data ,data
-                               :encoding (:x (:bin (:maxbins 200) :field :x-coord)
-                                          :y (:bin (:maxbins 200) :field :y-coord)
-                                          :size (:aggregate :count)))))
+                               :encoding (:x (:field :x-coord :type :quantitative)
+                                          :y (:field :y-coord :type :quantitative)))))
     (plot:plot histogram-scatterplot)
+    (format t "~a~%" (length xs))
     (uiop:run-program "./script.sh")))
