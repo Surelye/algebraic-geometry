@@ -3,4 +3,5 @@ deprec/
 subgroup
 premier/info/
 *.html
-troisieme/message
+message
+bkp.*
