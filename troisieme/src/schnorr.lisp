@@ -3,6 +3,9 @@
          do (progn ,@body)))
 
 
+(defun stop () (read-line))
+
+
 (defun write-to-file (data filename)
   (with-open-file (out filename :direction :output :if-exists :supersede
                                 :if-does-not-exist :create)
@@ -89,21 +92,42 @@
     message))
 
 
+(defun read-parse (file)
+  (parse-integer (uiop:read-file-line file)))
+
+
 (defun schnorr-sign-message ()
   (let ((k) (kQ) (message) (e) (s))
     (destructuring-bind (p r Q l) (extract-keys)
       (setq message (extract-message))
+      (format t "~%Для подписи сообщения m отправитель:~% ")
       (tagbody try-again-k
          (while (not (< 0 (setq k (random r)) r)))
-         (setq kQ (ec-arith::scalar-product k Q p)
+         (write-to-file (list k) "sign-k")
+         (format t "~%    [1] -- Вырабатывает случайное целое число k, 0 < k < r = 0x~x;~% "
+                 k)
+         (format t "~%    [2] -- Вычисляет точку R = kQ: ") (stop)
+         (setq k (read-parse "sign-k")
+               kQ (ec-arith::scalar-product k Q p))
+         (write-to-file (list kQ) "sign-R")
+         (format t "           k = 0x~x;
+           R = (~{0x~x~^, ~});~% " k kQ)
+         (format t "~%    [3] -- Вычисляет значение хеш-функции e = h(m, R): ") (stop)
+         (setq kQ (mapcar #'parse-integer
+                          (uiop:split-string (uiop:read-file-line "sign-R")
+                                             :separator " "))
                e (sxhash (cons kQ message)))
+         (write-to-file (list e) "sign-e")
+         (format t "           R = (~{0x~x~^, ~});
+           e = 0x~x;~% " kQ e)
          (when (zerop (mod e r)) (go try-again-k)))
-      (setq s (mod (+ (* l e) k) r))
-      (format t "~%Для подписи сообщения m отправитель:
-    [1] -- Вырабатывает случайное целое число k, 0 < k < r = 0x~x;
-    [2] -- Вычисляет точку R = kQ = (~{0x~x~^, ~});
-    [3] -- Вычисляет хеш-функцию e = h(m, R) = 0x~x;
-    [4] -- Вычисляет число s = l * e + k (mod r) = 0x~x.~%" k kQ e s)
+      (format t "~%    [4] -- Вычисляет число s = l * e + k (mod r): ") (stop)
+      (setq k (read-parse"sign-k")
+            e (read-parse "sign-e")
+            s (mod (+ (* l e) k) r))
+      (write-to-file (list s) "sign-s")
+      (format t "           k = 0x~x;~%           e = 0x~x;
+           s = 0x~x.~%" k e s)
       (format t "~%Подписанное сообщение было записано в файл signature.~%")
       (write-to-file (append message (list e s)) "signature"))))
 
@@ -149,16 +173,33 @@
   (let ((R?) (e?) (keys (extract-keys :l-req 'NO-L :p-req 'P-NEEDED)))
     (setq keys (cons (car keys) (subseq keys 2)))
     (destructuring-bind (p Q lQ m e s) (append keys (extract-signature))
+      (format t "~%Для проверки подписи получатель:~% ")
+      (setq e (read-parse "sign-e")
+            s (read-parse "sign-s"))
       (setq R? (ec-arith::add-points (ec-arith::scalar-product s Q p)
                                      (ec-arith::scalar-product e (get-minus-P lQ p) p)
-                                     p)
+                                     p))
+      (write-to-file (list R?) "verif-R")
+      (format t "~%    [1] -- Вычисляет точку R' = sQ - eP: ") (stop)
+      (setq s (read-parse "sign-s")
+            e (read-parse "sign-e")
+            R? (ec-arith::add-points (ec-arith::scalar-product s Q p)
+                                     (ec-arith::scalar-product e (get-minus-P lQ p) p) p))
+      (write-to-file (list R?) "verif-R")
+      (format t "           s = 0x~x;~%           e = 0x~x;
+           R' = (~{0x~x~^, ~});~%" s e R?)
+      (format t "~%    [2] -- Вычисляет значение хеш-функции e' = h(m, R'): ") (stop)
+      (setq R? (mapcar #'parse-integer
+                       (uiop:split-string (uiop:read-file-line "verif-R")
+                                          :separator " "))
             e? (sxhash (cons R? m)))
-      (format t "~%Для проверки подписи получатель:
-    [1] -- Вычисляет точку R' = (~{0x~x~^, ~});
-    [2] -- Вычисляет хеш-функцию e' = h(m, R') = 0x~x;
-    [3] -- Проверяет, что e = e' (mod r):
-        e  = h(m, R)  = 0x~x;
-        e' = h(m, R') = 0x~x.~%" R? e? e e?)
+      (write-to-file (list e?) "verif-e")
+      (format t "           R' = (~{0x~x~^, ~});~%           e' = 0x~x;~% " R? e?)
+      (format t "~%    [3] -- Проверяет, что e = e' (mod r): ") (stop)
+      (setq e (read-parse "sign-e")
+            e? (read-parse"verif-e"))
+      (format t "           e?  = h(m, R) = 0x~x;~%           e' = h(m, R') = 0x~x.~%"
+              e e?)
       (if (= e? e)
           (format t "~%Равенство выполняется. Подпись корректна.~%")
           (format t "~%Равенство не выполняется. Файл с сообщением или параметры подписи были изменены.~%")))))

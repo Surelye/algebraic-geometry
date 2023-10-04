@@ -133,6 +133,5 @@
 
 (defun messi-omurah ()
   (let* ((req-length (read-param 'REQ-LENGTH)) (m-sec (read-param 'M-SEC))
-         (params (gen-ec::generate-curve req-length m-sec))
-         (message (read-from-file filename)))
-    message))
+         (params (gen-ec::generate-curve req-length m-sec)))
+    params))
