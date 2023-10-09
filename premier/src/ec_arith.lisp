@@ -35,8 +35,7 @@
     (return-from add-points P))
   (let ((Px (car P)) (Py (cadr P))
         (Qx (car Q)) (Qy (cadr Q))
-        (Rx nil) (Ry nil)
-        (frac nil))
+        (Rx) (Ry) (frac))
     (cond
       ((/= Px Qx) (setq frac (* (- Qy Py)
                                 (cadr (extended-gcd (mod (- Qx Px) modulo) modulo)))
