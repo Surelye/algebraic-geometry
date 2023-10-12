@@ -52,7 +52,7 @@
 (defun scalar-product (n P modulo)
   (let ((result 'INF) (addend P))
     (while (not (zerop n))
-      (when (= 1 (mod n 2))
+      (when (= 1 (logxor n 1))
         (setq result (add-points addend result modulo)))
       (setq addend (add-points addend addend modulo)
             n (ash n -1)))
