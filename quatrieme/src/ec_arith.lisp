@@ -28,8 +28,8 @@
 
 
 (defun add-points (P Q modulo)
-  (when (eql P 'INF) (return-from add-points Q))
-  (when (eql Q 'INF) (return-from add-points P))
+  (when (equal P 'INF) (return-from add-points Q))
+  (when (equal Q 'INF) (return-from add-points P))
   (let ((Px (car P)) (Py (cadr P))
         (Qx (car Q)) (Qy (cadr Q))
         (Rx) (Ry) (frac))
@@ -40,7 +40,7 @@
                         Rx (- (* frac frac) (+ Px Qx))
                         Ry (+ (- Py) (* frac (- Px Rx)))))
       (t (cond
-           ((= Py Qy) (setq frac (* (* 3 Px Px)
+           ((= Py Qy) (setq frac (* 3 Px Px
                                     (cadr (extended-gcd (mod (* 2 Py) modulo)
                                                         modulo)))
                             Rx (- (* frac frac) (* 2 Px))
@@ -52,7 +52,7 @@
 (defun scalar-product (n P modulo)
   (let ((result 'INF) (addend P))
     (while (not (zerop n))
-      (when (= 1 (logxor n 1))
+      (when (= 1 (logand n 1))
         (setq result (add-points addend result modulo)))
       (setq addend (add-points addend addend modulo)
             n (ash n -1)))

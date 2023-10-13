@@ -42,7 +42,7 @@
                         Rx (- (* frac frac) (+ Px Qx))
                         Ry (+ (- Py) (* frac (- Px Rx)))))
       (t (cond
-           ((= Py Qy) (setq frac (* (* 3 Px Px)
+           ((= Py Qy) (setq frac (* 3 Px Px
                                     (cadr (extended-gcd (mod (* 2 Py) modulo)
                                                         modulo)))
                             Rx (- (* frac frac) (* 2 Px))
