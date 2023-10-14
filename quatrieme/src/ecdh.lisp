@@ -11,11 +11,11 @@
 
 (defun make-strings (option)
   (let ((hello-string) (error-string "Некорректный ввод. "))
-    (cond ((eql 'REQ-LENGTH option) (setq hello-string "Введите требуемую длину n характеристики поля в битах (n > 7): "
+    (cond ((eql 'REQ-LENGTH option) (setq hello-string "~%Введите требуемую длину n характеристики поля в битах (n > 7): "
                                           error-string (concatenate 'string error-string "Попробуйте ввести значение длины n снова: ")))
           ((eql 'M-SEC option) (setq hello-string "Введите параметр безопасности m (m -- натуральное число): "
                                      error-string (concatenate 'string error-string "Попробуйте ввести значение параметра безопасности m снова: ")))
-          ((eql 'NUM-USERS option) (setq hello-string "Введите количество пользователей (целое число в диапазоне [2; 50]): "
+          ((eql 'NUM-USERS option) (setq hello-string "~%Введите количество пользователей (целое число в диапазоне [2; 50]): "
                                          error-string (concatenate 'string error-string "Попробуйте ввести количество пользователей снова: ")))
           (t (return-from make-strings)))
     (list hello-string error-string)))
@@ -64,8 +64,7 @@
 (defun generate-common-key (user-data p-char num-users)
   (let ((current-accum) (prev-accum) (current-secret) (bound) (n-jiter))
     (dotimes (iter num-users)
-      (setq current-accum (caddr (nth iter user-data))
-            prev-accum current-accum
+      (setq current-accum (caddr (nth iter user-data)) prev-accum current-accum
             bound (mod (1- iter) num-users))
       (do ((jiter iter (mod (1+ jiter) num-users)))
           ((= jiter bound)
@@ -75,8 +74,7 @@
                                                                 prev-accum
                                                                 p-char))
                   (print-status 'DONE (list (name bound user-data)
-                                            current-secret
-                                            prev-accum
+                                            current-secret prev-accum
                                             current-accum))))
         (setq n-jiter (mod (1+ jiter) num-users))
         (if (= iter jiter)
@@ -87,19 +85,54 @@
                          current-accum (ec-arith::scalar-product current-secret
                                                                  prev-accum p-char))
                    (print-status 'PASS-COMP (list (name jiter user-data)
-                                                  current-secret
-                                                  prev-accum
+                                                  current-secret prev-accum
                                                   current-accum
-                                                  (name n-jiter user-data)))))))))
+                                                  (name n-jiter user-data))))))) ;current-accum
+    ))
+
+
+(defun get-nums (polys)
+  (mapcar #'ec-arith-2::get-num polys))
+
+
+(defun generate-common-key-bf (user-data num-users)
+  (let ((current-accum) (prev-accum) (current-secret) (bound) (n-jiter))
+    (dotimes (iter num-users)
+      (setq current-accum (caddr (nth iter user-data)) prev-accum current-accum
+            bound (mod (1- iter) num-users))
+      (do ((jiter iter (mod (1+ jiter) num-users)))
+          ((= jiter bound)
+           (progn (setq current-secret (cadr (nth bound user-data))
+                        prev-accum current-accum
+                        current-accum (ec-arith-2::scalar-product current-secret
+                                                                prev-accum))
+                  (print-status 'DONE (list (name bound user-data)
+                                            current-secret
+                                            (get-nums prev-accum)
+                                            (get-nums current-accum)))))
+        (setq n-jiter (mod (1+ jiter) num-users))
+        (if (= iter jiter)
+            (print-status 'PASS (list (name jiter user-data) (get-nums prev-accum)
+                                      (name n-jiter user-data)))
+            (progn (setq current-secret (cadr (nth jiter user-data))
+                         prev-accum current-accum
+                         current-accum (ec-arith-2::scalar-product current-secret
+                                                                 prev-accum))
+                   (print-status 'PASS-COMP (list (name jiter user-data)
+                                                  current-secret
+                                                  (get-nums prev-accum)
+                                                  (get-nums current-accum)
+                                                  (name n-jiter user-data))))))) ;current-accum
+    ))
 
 
 (defun print-generated (args)
   (destructuring-bind (p-char b E# generator) args
-    (format t "Для кривой были сгенерированы параметры:
-~t~tхарактеристики поля p = 0x~x;
-~t~tкоэффициента уравнения ЭК -- b = 0x~x;
-~t~tпорядка циклической группы -- m = 0x~x;
-~t~tгенератора циклической подгруппы G = (~{0x~x~^, ~}).~%"
+    (format t "~%Для кривой были сгенерированы параметры:
+~%~4tХарактеристика поля p           =  0x~x;
+~4tКоэффициент уравнения ЭК b      =  0x~x;
+~4tПорядок циклической подгруппы m =  0x~x;
+~4tГенератор G подгруппы           = (~{0x~x~^, ~}).~%"
             p-char b E# generator)))
 
 
@@ -109,29 +142,20 @@
          (user-data) (current-random) (common-key))
     (destructuring-bind (p-char b E# generator) params
       (print-generated (list p-char b E# generator))
-      (setq num-users (read-param 'NUM-USERS)
-            user-data (loop for user from 0 to (1- num-users)
+      (setq num-users (read-param 'NUM-USERS)) (terpri)
+      (setq user-data (loop for user from 0 to (1- num-users)
                             collect (list (code-char (+ 65 user))
                                           (setq current-random (+ 2 (random (- E# 2))))
                                           (ec-arith::scalar-product current-random generator p-char)))
-            common-key (generate-common-key user-data p-char num-users))
-      common-key)))
+            common-key (generate-common-key user-data p-char num-users)) common-key)))
 
 
-(defun read-from-file ()
-  (let ((filename) (message))
-    (tagbody try-again
-       (format t "Введите название файла с сообщением: ")
-       (setq filename (read-line))
-       (when (zerop (length filename)) (setq filename "message"))
-       (handler-case (setq message (uiop:read-file-lines filename))
-         (error (err)
-           (format t "Результатом выполнения программы стала ошибка:~%~a~%" err)
-           (go try-again))))
-    message))
-
-
-(defun messi-omurah ()
-  (let* ((req-length (read-param 'REQ-LENGTH)) (m-sec (read-param 'M-SEC))
-         (params (gen-ec::generate-curve req-length m-sec)))
-    params))
+(defun ecdh-bf ()
+  (let* ((num-users) (user-data) (current-random) (common-key))
+    (destructuring-bind (h n a b generator) (ec-arith-2::get-curve)
+      (setq num-users (read-param 'NUM-USERS)
+            user-data (loop for user from 0 to (1- num-users)
+                            collect (list (code-char (+ 65 user))
+                                          (setq current-random (+ 2 (random (- n 2))))
+                                          (ec-arith-2::scalar-product current-random generator)))
+            common-key (generate-common-key-bf user-data num-users)) common-key)))

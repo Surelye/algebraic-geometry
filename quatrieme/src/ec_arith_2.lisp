@@ -205,7 +205,7 @@
 (defun scalar-product (n P)
   (let ((result "INF") (addend P))
     (while (not (zerop n))
-      (when (= 1 (logxor n 1))
+      (when (= 1 (logand n 1))
         (setq result (add-points addend result)))
       (setq addend (add-points addend addend)
             n (ash n -1))) result))
@@ -237,7 +237,7 @@
                          collect (ash 1 pow)))))
 
 
-(defun greeter ()
+(defun get-curve ()
   (let ((c -1))
     (format t "~%Введите номер рабочей кривой:~%
     [1] -- K-233;~%~4t[2] -- K-283;
@@ -245,7 +245,7 @@
     [0] -- Выход.~2%Ваш выбор: ")
     (while (not (member (setq c (read)) '(1 2 3 4 0)))
       (format t "Некорректный ввод! Попробуйте ввести номер кривой снова: "))
-    (when (zerop c) (return-from greeter))
+    (when (zerop c) (return-from get-curve))
     (destructuring-bind (h n a b gx gy) (curve-setter-wrapper c)
       (format t "~%Была выбрана кривая со следующими параметрами:~2%")
       (print-poly c)
