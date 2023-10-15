@@ -5,3 +5,7 @@ premier/info/
 *.html
 message
 bkp.*
+r-point
+bits-to-cipher
+curve-params
+decrypted-*

@@ -127,25 +127,26 @@
 
 
 (defun print-generated (args)
-  (destructuring-bind (p-char b E# generator) args
+  (destructuring-bind (p-char b n r generator) args
     (format t "~%Для кривой были сгенерированы параметры:
 ~%~4tХарактеристика поля p           =  0x~x;
 ~4tКоэффициент уравнения ЭК b      =  0x~x;
+~4tПорядок кривой #E               =  0x~x;
 ~4tПорядок циклической подгруппы m =  0x~x;
 ~4tГенератор G подгруппы           = (~{0x~x~^, ~}).~%"
-            p-char b E# generator)))
+            p-char b n r generator)))
 
 
 (defun ecdh ()
   (let* ((req-length (read-param 'REQ-LENGTH)) (m-sec (read-param 'M-SEC))
          (params (gen-ec::generate-curve req-length m-sec)) (num-users)
          (user-data) (current-random) (common-key))
-    (destructuring-bind (p-char b E# generator) params
-      (print-generated (list p-char b E# generator))
+    (destructuring-bind (p-char b n r generator) params
+      (print-generated (list p-char b n r generator))
       (setq num-users (read-param 'NUM-USERS)) (terpri)
       (setq user-data (loop for user from 0 to (1- num-users)
                             collect (list (code-char (+ 65 user))
-                                          (setq current-random (+ 2 (random (- E# 2))))
+                                          (setq current-random (+ 2 (random (- r 2))))
                                           (ec-arith::scalar-product current-random generator p-char)))
             common-key (generate-common-key user-data p-char num-users)) common-key)))
 

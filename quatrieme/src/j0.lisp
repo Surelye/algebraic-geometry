@@ -273,4 +273,5 @@
                                                         (car P0-and-b)
                                                         p-char))
               (go generate-point-and-b)))
-    (list p-char (cadr P0-and-b) (cadr E-m-divisor) generator)))
+    (list p-char (cadr P0-and-b) (car E-m-divisor)
+          (cadr E-m-divisor) generator)))
