@@ -8,4 +8,5 @@ bkp.*
 r-point
 bits-to-cipher
 curve-params
+encrypted-*
 decrypted-*
