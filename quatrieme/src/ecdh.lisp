@@ -11,7 +11,7 @@
 
 (defun make-strings (option)
   (let ((hello-string) (error-string "Некорректный ввод. "))
-    (cond ((eql 'REQ-LENGTH option) (setq hello-string "~%Введите требуемую длину n характеристики поля в битах (n > 7): "
+    (cond ((eql 'REQ-LENGTH option) (setq hello-string "~%Введите требуемую длину n характеристики поля в битах (n > 3): "
                                           error-string (concatenate 'string error-string "Попробуйте ввести значение длины n снова: ")))
           ((eql 'M-SEC option) (setq hello-string "Введите параметр безопасности m (m -- натуральное число): "
                                      error-string (concatenate 'string error-string "Попробуйте ввести значение параметра безопасности m снова: ")))
@@ -23,7 +23,7 @@
 
 (defun read-param (option)
   (let ((param) (hello-string) (error-string)
-        (condition (cond ((eql 'REQ-LENGTH option) (lambda (param) (and (integerp param) (> param 7))))
+        (condition (cond ((eql 'REQ-LENGTH option) (lambda (param) (and (integerp param) (> param 3))))
                          ((eql 'M-SEC option) (lambda (param) (and (integerp param) (> param 0))))
                          ((eql 'NUM-USERS option) (lambda (param) (and (integerp param) (> param 1) (< param 51))))
                          (t (return-from read-param)))))

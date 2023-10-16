@@ -219,14 +219,14 @@
 (defun curve-setter-wrapper (c)
   (cond ((= 1 c) (curve-setter :k233))
         ((= 2 c) (curve-setter :k283))
-        ((= 3 c) (curve-setter :k409))
+        ;((= 3 c) (curve-setter :k409))
         (t       (curve-setter :k571))))
 
 
 (defun print-poly (c)
   (let ((cfs (cond ((= 1 c) '(233 74     1))
                    ((= 2 c) '(283 12 7 5 1))
-                   ((= 3 c) '(409    8   1))
+                   ;((= 3 c) '(409    8   1))
                    (t       '(571 10 5 2 1)))))
     (format t "    f(z) = ~{z^~a~^ ~^+ ~};~%" cfs)))
 
@@ -238,12 +238,12 @@
 
 
 (defun get-curve ()
-  (let ((c -1))
+  (let ((c -1)) ;[3] -- K-409
     (format t "~%Введите номер рабочей кривой:~%
     [1] -- K-233;~%~4t[2] -- K-283;
-    [3] -- K-409;~%~4t[4] -- K-571;
+~4t[3] -- K-571;
     [0] -- Выход.~2%Ваш выбор: ")
-    (while (not (member (setq c (read)) '(1 2 3 4 0)))
+    (while (not (member (setq c (read)) '(1 2 3 0)));4 0)))
       (format t "Некорректный ввод! Попробуйте ввести номер кривой снова: "))
     (when (zerop c) (return-from get-curve))
     (destructuring-bind (h n a b gx gy) (curve-setter-wrapper c)
