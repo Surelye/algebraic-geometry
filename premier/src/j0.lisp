@@ -161,9 +161,7 @@
       (return-from get-ring-factorization))
     (setq u-is (cons (compute-u (- D) p-char) u-is)
           m-is (cons p-char m-is))
-    (do ((i 0 (1+ i)))
-        ((= 1 (car m-is)) (setq a-i u-i
-                                iter (1- i)))
+    (do ((i 0 (1+ i))) ((= 1 (car m-is)) (setq a-i u-i iter (1- i)))
       (setq u-i (car u-is)
             m-i (car m-is))
       (setq m-is (cons (/ (+ (* u-i u-i) D) m-i) m-is)

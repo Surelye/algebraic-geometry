@@ -75,6 +75,7 @@
 
 
 (defun only-ords? (a r-P p ords?)
+  (setq ords? (remove-if #'minusp ords?))
   (remove-if-not #'(lambda (ord?)
                      (equal "INF" (ec-arith::scalar-product a ord?
                                                             r-P p))) ords?))
@@ -95,8 +96,8 @@
              R (ec-arith::scalar-product a succ-p r-P p)
              ts (get-ts a R Q p s table))
        (when (null ts) (go regenerate))
-       (format t "Был получен параметр:~%    s = [sqrt(sqrt(P))] = ~a.~%" s)
-       (format t "Были определены точки:~%    L = (~{~a~^, ~});~%" r-P)
+       (format t "~%Был получен параметр:~%    s = [sqrt(sqrt(P))] = ~a.~%" s)
+       (format t "~%Были определены точки:~%    L = (~{~a~^, ~});~%" r-P)
        (if (equal "INF" Q)
            (format t "    Q = [2s + 1]L = ~a;~%" Q)
            (format t "    Q = [2s + 1]L = (~{~a~^, ~});~%" Q))
@@ -106,8 +107,11 @@
        (setq ord (mapcar #'(lambda (t-val) (+ succ-p t-val)) ts))
        (aux::while (> points-to-check cur-point)
          (setq ord (only-ords? a r-P p ord))
-         (when (null ord) (setq cur-point 0) (go regenerate))
+         (when (null ord)
+           (setq cur-point 0)
+           (format t "~%Кандидатов на значение порядков не найдено! Завершение программы.")
+           (return-from baby-step-giant-step))
          (setq r-P (get-random-point a b p)
                cur-point (1+ cur-point)))
-       (format t "Был найден порядок эллиптической кривой:~%    #E = ~a.~%" (car ord)))
+       (format t "~%Был найден порядок эллиптической кривой:~%    #E = ~a.~%" (car ord)))
     (car ord)))
