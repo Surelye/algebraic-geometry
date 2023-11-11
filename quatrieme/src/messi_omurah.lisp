@@ -110,7 +110,7 @@
                                               collect (write-to-string (random 2))))
                                 ""))
              x (parse-integer x :radix 2)
-             y (aux:cipolla (ec-equation p b x) p))
+             y (aux:sqrt-Zp (ec-equation p b x) p))
        (when (null y) (go try-again))
        (setq R-point (list x y))
        (when (not (eql (ec-arith::scalar-product r R-point p) EC-ARITH::'INF))

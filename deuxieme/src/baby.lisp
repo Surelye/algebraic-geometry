@@ -61,7 +61,7 @@
         (multiplier (1+ (* 2 s))) (is) (pairs)
         (js (loop for j from (- s) to s collect j)))
     (when (member R table :test #'equal) (setq is (cons 0 is)))
-    (do ((i 1 (1+ i))) ((> i s) is)
+    (do ((i 1 (1+ i))) ((> i s))
       (setq pos-RiQ (ec-arith::add-points a pos-RiQ  Q p)
             neg-RiQ (ec-arith::add-points a neg-RiQ -Q p))
       (when (member pos-RiQ table :test #'equal)
@@ -91,7 +91,8 @@
     (setq a (mod a p) b (mod b p)
           succ-p (1+ p) s (ceiling (sqrt (sqrt p))))
     (tagbody regenerate
-       (setq r-P (get-random-point a b p) table (get-table a r-P p s)
+       (setq r-P (get-random-point a b p)
+             table (get-table a r-P p s)
              Q (ec-arith::scalar-product a (1+ (* 2 s)) r-P p)
              R (ec-arith::scalar-product a succ-p r-P p)
              ts (get-ts a R Q p s table))
