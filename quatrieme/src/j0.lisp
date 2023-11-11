@@ -114,7 +114,7 @@
 
 
 (defun generate-P0-and-b (p-char)
-  (let ((x0 0) (y0 0) (b nil))
+  (let ((x0 0) (y0 0) b)
     (aux:while (zerop x0)
       (setq x0 (random p-char)))
     (aux:while (zerop y0)
@@ -136,8 +136,7 @@
 
 
 (defun generate-curve (req-length m-sec)
-  (let* ((p-d-e) (p-char) (Es) (E-m-divisor)
-         (P0-and-b) (generator))
+  (let* (p-d-e p-char Es E-m-divisor P0-and-b generator)
     (tagbody generate-p
        (aux:while (null (setq p-d-e (get-char-and-factors req-length)
                           p-char (car p-d-e)

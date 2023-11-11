@@ -1,5 +1,9 @@
 (defpackage #:ec-arith-2
-  (:use :cl))
+  (:use #:cl)
+  (:export #:add-points
+           #:scalar-product
+           #:get-curve))
+
 
 (in-package #:ec-arith-2)
 
@@ -22,74 +26,72 @@
 
 
 (defvar *curves*
-  (list :k233 (list :f '(progn (setq *mod-poly* (make-array 234 :initial-element 0))
-                               (setf (svref *mod-poly*   0) 1
-                                     (svref *mod-poly*  74) 1
-                                     (svref *mod-poly* 233) 1)
-                               (setq *mod-poly* (list *mod-poly* 234)) (list *mod-poly* 234))
-                    :h 4
-                    :n 3450873173395281893717377931138512760570940988862252126328087024741343
-                    :a 0
-                    :b 1
-                    :gx (get-coord "17232ba853a7e731af129f22ff4149563a419c26bf50a4c9d6eefad6126")
-                    :gy (get-coord "1db537dece819b7f70f555a67c427a8cd9bf18aeb9b56e0c11056fae6a3"))
+  (list
+   :k163 (list :f '(progn (setq *mod-poly* (make-array 164 :initial-element 0))
+                          (setf (svref *mod-poly*   0) 1
+                                (svref *mod-poly*   3) 1
+                                (svref *mod-poly*   6) 1
+                                (svref *mod-poly*   7) 1
+                                (svref *mod-poly* 163) 1)
+                          (setq *mod-poly* (list *mod-poly* 164)) (list *mod-poly*) 164)
+               :h 2
+               :n 5846006549323611672814741753598448348329118574063
+               :a 1
+               :b 1
+               :gx (get-coord "2fe13c0537bbc11acaa07d793de4e6d5e5c94eee8")
+               :gy (get-coord "289070fb05d38ff58321f2e800536d538ccdaa3d9"))
 
-        :k283 (list :f '(progn (setq *mod-poly* (make-array 284 :initial-element 0))
-                               (setf (svref *mod-poly*   0) 1
-                                     (svref *mod-poly*   5) 1
-                                     (svref *mod-poly*   7) 1
-                                     (svref *mod-poly*  12) 1
-                                     (svref *mod-poly* 283) 1)
-                               (setq *mod-poly* (list *mod-poly* 284)) (list *mod-poly* 284))
-                    :h 4
-                    :n 3885337784451458141838923813647037813284811733793061324295874997529815829704422603873
-                    :a 0
-                    :b 1
-                    :gx (get-coord "503213f78ca44883f1a3b8162f188e553cd265f23c1567a16876913b0c2ac2458492836")
-                    :gy (get-coord "1ccda380f1c9e318d90f95d07e5426fe87e45c0e8184698e45962364e34116177dd2259"))
+   :k233 (list :f '(progn (setq *mod-poly* (make-array 234 :initial-element 0))
+                          (setf (svref *mod-poly*   0) 1
+                                (svref *mod-poly*  74) 1
+                                (svref *mod-poly* 233) 1)
+                          (setq *mod-poly* (list *mod-poly* 234)) (list *mod-poly* 234))
+               :h 4
+               :n 3450873173395281893717377931138512760570940988862252126328087024741343
+               :a 0
+               :b 1
+               :gx (get-coord "17232ba853a7e731af129f22ff4149563a419c26bf50a4c9d6eefad6126")
+               :gy (get-coord "1db537dece819b7f70f555a67c427a8cd9bf18aeb9b56e0c11056fae6a3"))
 
-        :k409 (list :f '(progn (setq *mod-poly* (make-array 410 :initial-element 0))
-                               (setf (svref *mod-poly*   0) 1
-                                     (svref *mod-poly*   8) 1
-                                     (svref *mod-poly* 409) 1)
-                               (setq *mod-poly* (list *mod-poly* 410)) (list *mod-poly* 410))
-                    :h 4
-                    :n 330527984395124299475957654016385519914202341482140609642324395022880711289249191050673258457777458014096366590617731358671
-                    :a 0
-                    :b 1
-                    :gx (get-coord "060f05f658f49c1ad3ab1890f7184210efd0987e307c84c27accfb8f9f67cc2c460189eb5aaaa62ee222eb1b35540cfe9023746")
-                    :gy (get-coord "1e369050b7c4e42acba1dacbf04299c3460782f918ea427e6325165e9ea10e3da5f6c42e9c55215aa9ca27a5863ec48d8e0286b"))
+   :k283 (list :f '(progn (setq *mod-poly* (make-array 284 :initial-element 0))
+                          (setf (svref *mod-poly*   0) 1
+                                (svref *mod-poly*   5) 1
+                                (svref *mod-poly*   7) 1
+                                (svref *mod-poly*  12) 1
+                                (svref *mod-poly* 283) 1)
+                          (setq *mod-poly* (list *mod-poly* 284)) (list *mod-poly* 284))
+               :h 4
+               :n 3885337784451458141838923813647037813284811733793061324295874997529815829704422603873
+               :a 0
+               :b 1
+               :gx (get-coord "503213f78ca44883f1a3b8162f188e553cd265f23c1567a16876913b0c2ac2458492836")
+               :gy (get-coord "1ccda380f1c9e318d90f95d07e5426fe87e45c0e8184698e45962364e34116177dd2259"))
 
-        :k571 (list :f '(progn (setq *mod-poly* (make-array 572 :initial-element 0))
-                               (setf (svref *mod-poly*   0) 1
-                                     (svref *mod-poly*   2) 1
-                                     (svref *mod-poly*   5) 1
-                                     (svref *mod-poly*  10) 1
-                                     (svref *mod-poly* 571) 1)
-                               (setq *mod-poly* (list *mod-poly* 572)) (list *mod-poly* 572))
-                    :h 4
-                    :n 1932268761508629172347675945465993672149463664853217499328617625725759571144780212268133978522706711834706712800825351461273674974066617311929682421617092503555733685276673
-                    :a 0
-                    :b 1
-                    :gx (get-coord "26eb7a859923fbc82189631f8103fe4ac9ca2970012d5d46024804801841ca44370958493b205e647da304db4ceb08cbbd1ba39494776fb988b47174dca88c7e2945283a01c8972")
-                    :gy (get-coord "349dc807f4fbf374f4aeade3bca95314dd58cec9f307a54ffc61efc006d8a2c9d4979c0ac44aea74fbebbb9f772aedcb620b01a7ba7af1b320430c8591984f601cd4c143ef1c7a3"))))
+   :k409 (list :f '(progn (setq *mod-poly* (make-array 410 :initial-element 0))
+                          (setf (svref *mod-poly*   0) 1
+                                (svref *mod-poly*  87) 1
+                                (svref *mod-poly* 409) 1)
+                          (setq *mod-poly* (list *mod-poly* 410)) (list *mod-poly* 410))
+               :h 4
+               :n 330527984395124299475957654016385519914202341482140609642324395022880711289249191050673258457777458014096366590617731358671
+               :a 0
+               :b 1
+               :gx (get-coord "060f05f658f49c1ad3ab1890f7184210efd0987e307c84c27accfb8f9f67cc2c460189eb5aaaa62ee222eb1b35540cfe9023746")
+               :gy (get-coord "1e369050b7c4e42acba1dacbf04299c3460782f918ea427e6325165e9ea10e3da5f6c42e9c55215aa9ca27a5863ec48d8e0286b"))
 
-
-(defmacro while (condition &body body)
-  `(do () ((not ,condition))
-     ,@body))
-
-
-(defun ext-gcd (a b)
-  (let ((s 0) (old-s 1) (r b) (old-r a)
-        (quotient) (bezout-t))
-    (while (not (zerop r))
-      (setq quotient (floor old-r r))
-      (psetq old-r r r (- old-r (* quotient r))
-             old-s s s (- old-s (* quotient s))))
-    (if (zerop b) (setq bezout-t 0)
-        (setq bezout-t (floor (- old-r (* old-s a)) b)))
-    (list old-r old-s bezout-t)))
+   :k571 (list :f '(progn (setq *mod-poly* (make-array 572 :initial-element 0))
+                          (setf (svref *mod-poly*   0) 1
+                                (svref *mod-poly*   2) 1
+                                (svref *mod-poly*   5) 1
+                                (svref *mod-poly*  10) 1
+                                (svref *mod-poly* 571) 1)
+                          (setq *mod-poly* (list *mod-poly* 572)) (list *mod-poly* 572))
+               :h 4
+               :n 1932268761508629172347675945465993672149463664853217499328617625725759571144780212268133978522706711834706712800825351461273674974066617311929682421617092503555733685276673
+               :a 0
+               :b 1
+               :gx (get-coord "26eb7a859923fbc82189631f8103fe4ac9ca2970012d5d46024804801841ca44370958493b205e647da304db4ceb08cbbd1ba39494776fb988b47174dca88c7e2945283a01c8972")
+               :gy (get-coord "349dc807f4fbf374f4aeade3bca95314dd58cec9f307a54ffc61efc006d8a2c9d4979c0ac44aea74fbebbb9f772aedcb620b01a7ba7af1b320430c8591984f601cd4c143ef1c7a3"))))
 
 
 (defun pdf (f s)
@@ -153,7 +155,7 @@
   ;  (return-from xea-p))
   (let ((p-0 f) (p-1 s) ;(g-0 #(1)) (g-1 #(0))
         (f-0 '(#(0) 1)) (f-1 '(#(1) 1)) (q))
-    (while (not (zero-poly? p-1))
+    (aux:while (not (zero-poly? p-1))
       (setq q (car (pdf p-0 p-1)))
       (psetq p-0 p-1 p-1 (poly+ p-0 (poly* p-1 q))
              ;g-0 g-1 g-1 (poly+ g-0 (poly* g-1 q p) p)
@@ -204,7 +206,7 @@
 
 (defun scalar-product (n P)
   (let ((result "INF") (addend P))
-    (while (not (zerop n))
+    (aux:while (not (zerop n))
       (when (= 1 (logand n 1))
         (setq result (add-points addend result)))
       (setq addend (add-points addend addend)
@@ -217,16 +219,18 @@
 
 
 (defun curve-setter-wrapper (c)
-  (cond ((= 1 c) (curve-setter :k233))
-        ((= 2 c) (curve-setter :k283))
-        ;((= 3 c) (curve-setter :k409))
+  (cond ((= 1 c) (curve-setter :k163))
+        ((= 2 c) (curve-setter :k233))
+        ((= 3 c) (curve-setter :k283))
+        ((= 4 c) (curve-setter :k409))
         (t       (curve-setter :k571))))
 
 
 (defun print-poly (c)
-  (let ((cfs (cond ((= 1 c) '(233 74     1))
-                   ((= 2 c) '(283 12 7 5 1))
-                   ;((= 3 c) '(409    8   1))
+  (let ((cfs (cond ((= 1 c) '(163  7 6 3 1))
+                   ((= 2 c) '(233 74     1))
+                   ((= 3 c) '(283 12 7 5 1))
+                   ((= 4 c) '(409 87     1))
                    (t       '(571 10 5 2 1)))))
     (format t "    f(z) = ~{z^~a~^ ~^+ ~};~%" cfs)))
 
@@ -238,12 +242,12 @@
 
 
 (defun get-curve ()
-  (let ((c -1)) ;[3] -- K-409
+  (let ((c -1))
     (format t "~%Введите номер рабочей кривой:~%
-    [1] -- K-233;~%~4t[2] -- K-283;
-~4t[3] -- K-571;
-    [0] -- Выход.~2%Ваш выбор: ")
-    (while (not (member (setq c (read)) '(1 2 3 0)));4 0)))
+    [1] -- K-163;~%~4t[2] -- K-233;
+~4t[3] -- K-283;~%~4t[4] -- K-409;
+~4t[5] -- K-571;~%~4t[0] -- Выход.~2%Ваш выбор: ")
+    (aux:while (not (member (setq c (read)) '(1 2 3 4 5 0)))
       (format t "Некорректный ввод! Попробуйте ввести номер кривой снова: "))
     (when (zerop c) (return-from get-curve))
     (destructuring-bind (h n a b gx gy) (curve-setter-wrapper c)

@@ -1,7 +1,11 @@
 (defpackage :messi-omurah
-  (:use :common-lisp))
+  (:use #:cl)
+  (:export #:mo-gen-ec
+           #:mo-encrypt
+           #:mo-decrypt))
 
-(in-package :messi-omurah)
+
+(in-package #:messi-omurah)
 
 
 (defun stop () (read-line))

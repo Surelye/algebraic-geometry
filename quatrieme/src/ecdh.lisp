@@ -1,12 +1,10 @@
 (defpackage #:ecdh
-  (:use :cl))
+  (:use #:cl)
+  (:export #:ecdh
+           #:ecdh-bf))
+
 
 (in-package #:ecdh)
-
-
-(defmacro while (condition &body body)
-  `(loop while ,condition
-         do (progn ,@body)))
 
 
 (defun make-strings (option)
@@ -30,7 +28,7 @@
     (destructuring-bind (hello error) (make-strings option)
       (setq hello-string hello error-string error))
     (format t hello-string)
-    (while (not (funcall condition (setq param (read))))
+    (aux:while (not (funcall condition (setq param (read))))
       (format t error-string))
     param))
 
@@ -70,7 +68,7 @@
           ((= jiter bound)
            (progn (setq current-secret (cadr (nth bound user-data))
                         prev-accum current-accum
-                        current-accum (ec-arith::scalar-product current-secret
+                        current-accum (ec-arith:scalar-product current-secret
                                                                 prev-accum
                                                                 p-char))
                   (print-status 'DONE (list (name bound user-data)
@@ -82,7 +80,7 @@
                                       (name n-jiter user-data)))
             (progn (setq current-secret (cadr (nth jiter user-data))
                          prev-accum current-accum
-                         current-accum (ec-arith::scalar-product current-secret
+                         current-accum (ec-arith:scalar-product current-secret
                                                                  prev-accum p-char))
                    (print-status 'PASS-COMP (list (name jiter user-data)
                                                   current-secret prev-accum
@@ -104,7 +102,7 @@
           ((= jiter bound)
            (progn (setq current-secret (cadr (nth bound user-data))
                         prev-accum current-accum
-                        current-accum (ec-arith-2::scalar-product current-secret
+                        current-accum (ec-arith-2:scalar-product current-secret
                                                                 prev-accum))
                   (print-status 'DONE (list (name bound user-data)
                                             current-secret
@@ -116,7 +114,7 @@
                                       (name n-jiter user-data)))
             (progn (setq current-secret (cadr (nth jiter user-data))
                          prev-accum current-accum
-                         current-accum (ec-arith-2::scalar-product current-secret
+                         current-accum (ec-arith-2:scalar-product current-secret
                                                                  prev-accum))
                    (print-status 'PASS-COMP (list (name jiter user-data)
                                                   current-secret
@@ -139,7 +137,7 @@
 
 (defun ecdh ()
   (let* ((req-length (read-param 'REQ-LENGTH)) (m-sec (read-param 'M-SEC))
-         (params (gen-ec::generate-curve req-length m-sec)) (num-users)
+         (params (gen-ec:generate-curve req-length m-sec)) (num-users)
          (user-data) (current-random) (common-key))
     (destructuring-bind (p-char b n r generator) params
       (print-generated (list p-char b n r generator))
@@ -147,16 +145,18 @@
       (setq user-data (loop for user from 0 to (1- num-users)
                             collect (list (code-char (+ 65 user))
                                           (setq current-random (+ 2 (random (- r 2))))
-                                          (ec-arith::scalar-product current-random generator p-char)))
-            common-key (generate-common-key user-data p-char num-users)) common-key)))
+                                          (ec-arith:scalar-product current-random generator p-char)))
+            common-key (generate-common-key user-data p-char num-users)) ;common-key)))
+      t)))
 
 
 (defun ecdh-bf ()
   (let* ((num-users) (user-data) (current-random) (common-key))
-    (destructuring-bind (h n a b generator) (ec-arith-2::get-curve)
+    (destructuring-bind (h n a b generator) (ec-arith-2:get-curve)
       (setq num-users (read-param 'NUM-USERS)
             user-data (loop for user from 0 to (1- num-users)
                             collect (list (code-char (+ 65 user))
                                           (setq current-random (+ 2 (random (- n 2))))
-                                          (ec-arith-2::scalar-product current-random generator)))
-            common-key (generate-common-key-bf user-data num-users)) common-key)))
+                                          (ec-arith-2:scalar-product current-random generator)))
+            common-key (generate-common-key-bf user-data num-users)) ;common-key)))
+      t)))
