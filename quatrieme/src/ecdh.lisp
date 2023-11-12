@@ -44,12 +44,12 @@
                    p-user (p-to-hex pub-key) n-user)))
         ((eql 'PASS-COMP status)
          (destructuring-bind (p-user scalar prev-p cur-p n-user) args
-           (format t "Пользователь ~c вычисляет 0x~a * (~{0x~a~^, ~}) (mod p) = (~{0x~a~^, ~}) и передаёт пользователю ~c.~%"
+           (format t "Пользователь ~c вычисляет 0x~a * (~{0x~a~^, ~}) = (~{0x~a~^, ~}) и передаёт пользователю ~c.~%"
                    p-user (write-to-string scalar :base 16) (p-to-hex prev-p)
                    (p-to-hex cur-p) n-user)))
         ((eql 'DONE status)
          (destructuring-bind (p-user scalar prev-p cur-p) args
-           (format t "Пользователь ~c вычисляет 0x~a * (~{0x~a~^, ~}) (mod p) = (~{0x~a~^, ~}). Теперь у него есть значение секретного ключа.~%~%"
+           (format t "Пользователь ~c вычисляет 0x~a * (~{0x~a~^, ~}) = (~{0x~a~^, ~}). Теперь у него есть значение секретного ключа.~%~%"
                    p-user (write-to-string scalar :base 16) (p-to-hex prev-p)
                    (p-to-hex cur-p))))
         (t (return-from print-status))))

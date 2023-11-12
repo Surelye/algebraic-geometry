@@ -177,29 +177,31 @@
           power (1- power))))
 
 
+(defun red (poly)
+  (cadr (pdf poly *mod-poly*)))
+
+
 (defun add-points (P Q)
-  (flet ((red (poly)
-           (cadr (pdf poly *mod-poly*))))
-    (when (equal P "INF") (return-from add-points Q))
-    (when (equal Q "INF") (return-from add-points P))
-    (let* ((Px (car P)) (Py (cadr P))
-           (Qx (car Q)) (Qy (cadr Q))
-           (Rx) (Ry) (frac) (inv) (sqr))
-      (cond
-        ((not (equal-poly? Px Qx)) (setq inv (xea-p *mod-poly* (poly+ Px Qx))
-                                         frac (red (poly* (poly+ Py Qy) inv))
-                                         Rx (poly+ (red (poly* frac frac)) frac Px Qx)
-                                         Ry (poly+ (red (poly* (poly+ frac '(#(1) 1)) Rx))
-                                                   (red (poly* (poly+ (red (poly* Py Qx))
-                                                                      (red (poly* Qy Px))) inv)))))
-        (t (cond
-             ((equal-poly? Py Qy) (setq inv (xea-p *mod-poly* Px)
-                                        sqr (red (poly* Px Px))
-                                        frac (red (poly* (poly+ sqr Py) inv))
-                                        Rx (poly+ (red (poly* frac frac)) frac)
-                                        Ry (poly+ (red (poly* (poly+ frac '(#(1) 1)) Rx)) sqr)))
-             (t (return-from add-points "INF")))))
-      (list (red Rx) (red Ry)))))
+  (when (equal P "INF") (return-from add-points Q))
+  (when (equal Q "INF") (return-from add-points P))
+  (let* ((Px (car P)) (Py (cadr P))
+         (Qx (car Q)) (Qy (cadr Q))
+         (Rx) (Ry) (frac) (inv) (sqr))
+    (cond
+      ((not (equal-poly? Px Qx)) (setq inv (xea-p *mod-poly* (poly+ Px Qx))
+                                       frac (red (poly* (poly+ Py Qy) inv))
+                                       Rx (poly+ (red (poly* frac frac)) frac Px Qx)
+                                       Ry (poly+ (red (poly* (poly+ frac '(#(1) 1)) Rx))
+                                                 (red (poly* (poly+ (red (poly* Py Qx))
+                                                                    (red (poly* Qy Px))) inv)))))
+      (t (cond
+           ((equal-poly? Py Qy) (setq inv (xea-p *mod-poly* Px)
+                                      sqr (red (poly* Px Px))
+                                      frac (red (poly* (poly+ sqr Py) inv))
+                                      Rx (poly+ (red (poly* frac frac)) frac)
+                                      Ry (poly+ (red (poly* (poly+ frac '(#(1) 1)) Rx)) sqr)))
+           (t (return-from add-points "INF")))))
+    (list (red Rx) (red Ry))))
 
 
 (defun scalar-product (n P)
